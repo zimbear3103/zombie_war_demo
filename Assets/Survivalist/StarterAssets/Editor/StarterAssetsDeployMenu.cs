@@ -2,9 +2,8 @@ using System.Linq;
 using UnityEditor;
 using UnityEngine;
 #if STARTER_ASSETS_PACKAGES_CHECKED
-using Cinemachine;
+using Unity.Cinemachine;
 #endif
-
 namespace StarterAssets
 {
     // This class needs to be a scriptable object to support dynamic determination of StarterAssets install path
