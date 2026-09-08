@@ -2,7 +2,7 @@
 
 **Ngày:** 2026-09-08
 
-**Trạng thái:** Luật điều khiển và cách tổ chức đã được duyệt trong hội thoại; bản spec này chờ review trước khi viết implementation plan.
+**Trạng thái:** Đã được chủ project chốt trong hội thoại ngày 2026-09-08; được dùng làm baseline cho implementation plan.
 
 **Phạm vi:** Player core chạy được trong một test arena.
 
