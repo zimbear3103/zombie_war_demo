@@ -70,7 +70,7 @@ Các code blocks dưới đây là full files để bắt đầu mỗi task. Ins
 
 **Interfaces:** Produces `PlayerControlRules.Move(Vector2)`, `IsAiming(Vector2,float)`, `Facing(Vector2,Vector2,Vector3,float)`; `PlayerHealth : IDamageable` với `CurrentHealth`, `MaxHealth`, `IsAlive`, `IsDead`, `HealthChanged`, `Died`, `TakeDamage(DamageInfo)`, `RestoreFullHealth()`.
 
-- [ ] **Step 1: Add the runtime and EditMode assembly configuration.**
+- [x] **Step 1: Add the runtime and EditMode assembly configuration.**
 
 Full runtime asmdef:
 
@@ -104,7 +104,7 @@ Full EditMode asmdef:
 
 Import with Unity so `.meta` files exist. If Editor stores asmref by GUID, resolve the generated runtime asmdef GUID and use Editor's assembly reference picker; never invent a GUID. Confirm existing scripts still compile before adding failing tests.
 
-- [ ] **Step 2: Add the full failing test file PlayerCoreRulesTests.cs.**
+- [x] **Step 2: Add the full failing test file PlayerCoreRulesTests.cs.**
 
 ```csharp
 using NUnit.Framework;
@@ -155,9 +155,9 @@ public class PlayerCoreRulesTests
 }
 ```
 
-- [ ] **Step 3: Run EditMode filter PlayerCoreRulesTests and confirm the expected missing-type/member failures.** Save actual failure evidence; do not count unrelated project compile errors as the intended red test.
+- [x] **Step 3: Run EditMode filter PlayerCoreRulesTests and confirm the expected missing-type/member failures.** Save actual failure evidence; do not count unrelated project compile errors as the intended red test.
 
-- [ ] **Step 4: Add the complete contracts, rules and health implementation.**
+- [x] **Step 4: Add the complete contracts, rules and health implementation.**
 
 Full DamageInfo.cs:
 
@@ -259,8 +259,8 @@ public class PlayerHealth : MonoBehaviour, IDamageable
 }
 ```
 
-- [ ] **Step 5: Re-run PlayerCoreRulesTests, verify pass, then review public names against interfaces.** All tests destroy objects they create; no scene changes are required for this task.
-- [ ] **Step 6: Commit only the task's paths and generated metas.** Message: `feat: add player control rules and health contracts`. Keep user's InputManager diff unstaged.
+- [x] **Step 5: Re-run PlayerCoreRulesTests, verify pass, then review public names against interfaces.** All tests destroy objects they create; no scene changes are required for this task.
+- [x] **Step 6: Commit only the task's paths and generated metas.** Message: `feat: add player control rules and health contracts`. Keep user's InputManager diff unstaged.
 
 **Acceptance:** Pure input/facing rules and real health component pass meaningful tests; legacy scripts still compile without an Assembly-CSharp dependency cycle.
 
