@@ -90,7 +90,7 @@ public class ZombieSpawner : MonoBehaviour
         m_spawnTimer = 0f;
         if (AliveCount >= GetAliveCap())
             return;
-
+      
         TrySpawnNextZombie();
     }
 
@@ -268,7 +268,7 @@ public class ZombieSpawner : MonoBehaviour
 
         if (!TryGetSpawnPosition(out Vector3 spawnPosition))
             return;
-
+        Debug.Log($"Spawning {group.ZombiePrefab.name} at {spawnPosition} for wave {m_currentWaveIndex}, group {m_currentGroupIndex}.", this);
         Transform parent = m_spawnedZombieParent != null ? m_spawnedZombieParent : transform;
         GameObject instance = m_pool.AcquireInactive(group.ZombiePrefab, parent);
         if (instance == null)

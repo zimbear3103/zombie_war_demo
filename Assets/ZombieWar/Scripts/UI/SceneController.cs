@@ -3,56 +3,107 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
+[DefaultExecutionOrder(-1000)]
 public class SceneController : PersistenceSingleton<SceneController>
 {
-    private AsyncOperation m_asyncOp { get; set; }
+    public const string LoadingSceneName = "LoadScene";
+    public const string MainMenuSceneName = "MainMenu";
+    public const string GameplaySceneName = "GameplayZombie";
+
+    private static SceneController m_activeController;
+    private AsyncOperation m_asyncOp;
+
     public AsyncOperation AsyncOp => m_asyncOp;
-    private float m_sceneActivationDelayTime { set; get; } = 0.1f;
-    private float m_sceneLoadingDelayTime { set; get; } = 0.1f;
+    public bool IsLoading => m_asyncOp != null;
+    public bool LastLoadSucceeded { get; private set; }
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetSession()
+    {
+        m_activeController = null;
+    }
+
+    private void Awake()
+    {
+        // SceneController owns the persistent System prefab, including its other managers.
+        if (m_activeController != null && m_activeController != this)
+        {
+            gameObject.SetActive(false);
+            Destroy(gameObject);
+            return;
+        }
+
+        m_activeController = this;
+        DontDestroyOnLoad(gameObject);
+    }
+
+    private void OnDestroy()
+    {
+        if (m_activeController == this)
+            m_activeController = null;
+    }
 
     public IEnumerator LoadMainMenu(Action<float> updateCallback = null, Action callback = null)
     {
-        m_asyncOp = SceneManager.LoadSceneAsync(1);
-        m_asyncOp.allowSceneActivation = false;
+        return LoadScene(MainMenuSceneName, updateCallback, callback);
+    }
 
-        while (!m_asyncOp.isDone)
-        {
-            float progress = Mathf.Clamp(m_asyncOp.progress, 0.0f, 0.9f);
-            updateCallback?.Invoke(progress);
-            yield return new WaitForSeconds(m_sceneLoadingDelayTime);
-
-            if (progress >= 0.9f)
-            {
-                yield return new WaitForSeconds(m_sceneActivationDelayTime);
-                callback?.Invoke();
-                m_asyncOp.allowSceneActivation = true;
-            }
-
-            yield return null;
-        }
-        m_asyncOp = null;
+    public IEnumerator LoadStartup(Action<float> updateCallback = null, Action callback = null)
+    {
+        return LoadScene(LoadingSceneName, updateCallback, callback);
     }
 
     public IEnumerator LoadGamePlay(Action<float> updateCallback = null, Action callback = null)
     {
-        m_asyncOp = SceneManager.LoadSceneAsync(2);
-        m_asyncOp.allowSceneActivation = false;
+        return LoadScene(GameplaySceneName, updateCallback, callback);
+    }
 
-        while (!m_asyncOp.isDone)
+    private IEnumerator LoadScene(string sceneName, Action<float> updateCallback, Action callback)
+    {
+        if (IsLoading)
+            yield break;
+
+        LastLoadSucceeded = false;
+        if (!Application.CanStreamedLevelBeLoaded(sceneName))
         {
-            float progress = Mathf.Clamp(m_asyncOp.progress, 0.0f, 0.9f);
-            updateCallback?.Invoke(progress);
-            yield return new WaitForSeconds(m_sceneLoadingDelayTime);
+            Debug.LogError($"[SceneController] Cannot load '{sceneName}'. Enable it in the build scene list.", this);
+            yield break;
+        }
 
-            if (progress >= 0.9f)
+        string loadingError = null;
+        try
+        {
+            m_asyncOp = SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Single);
+        }
+        catch (Exception exception)
+        {
+            loadingError = exception.Message;
+        }
+        if (m_asyncOp == null)
+        {
+            Debug.LogError($"[SceneController] Could not load '{sceneName}': {loadingError ?? "no loading operation was returned."}", this);
+            yield break;
+        }
+
+        try
+        {
+            while (!m_asyncOp.isDone)
             {
-                yield return new WaitForSeconds(m_sceneActivationDelayTime);
-                callback?.Invoke();
-                m_asyncOp.allowSceneActivation = true;
+                updateCallback?.Invoke(Mathf.Clamp01(m_asyncOp.progress / 0.9f));
+                yield return null;
             }
 
+            // Let destination-scene Start methods finish before entering its game state.
             yield return null;
+            LastLoadSucceeded = SceneManager.GetActiveScene().name == sceneName;
+            updateCallback?.Invoke(1f);
         }
-        m_asyncOp = null;
+        finally
+        {
+            m_asyncOp = null;
+        }
+
+        if (LastLoadSucceeded)
+            callback?.Invoke();
     }
 }

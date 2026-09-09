@@ -44,12 +44,14 @@ public class UIInGame : UIScreen
     }
     private void OnEnable()
     {
-        m_settingButton.onClick.AddListener(OnSettingButtonPressed);
+        if (m_settingButton != null)
+            m_settingButton.onClick.AddListener(OnSettingButtonPressed);
     }
 
     private void OnDisable()
     {
-        m_settingButton.onClick.RemoveListener(OnSettingButtonPressed);
+        if (m_settingButton != null)
+            m_settingButton.onClick.RemoveListener(OnSettingButtonPressed);
     }
 
     private void OnSettingButtonPressed()

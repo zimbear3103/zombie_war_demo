@@ -152,7 +152,8 @@ public class UISettingPopup : UIPopup
     {
         SoundManager.Instance.OnPlaySfxAudio(ESoundId.UI_Click_ButtonNegative);
         Hide();
-        GamePlayController.Instance.LeaveSettingPopupStatus();       
+        if (GamePlayController.Instance != null)
+            GamePlayController.Instance.LeaveSettingPopupStatus();
     }
 
     public void OnBottomButtonGroupActive(bool isActive)

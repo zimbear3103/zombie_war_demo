@@ -106,11 +106,11 @@ public class ZombieController : MonoBehaviour
     {
         CacheComponents();
         // External component disable releases the instance; restore it only while inactive.
-        if (!gameObject.activeSelf && !enabled) enabled = true;
-        if (!enabled || m_agent == null || !m_agent.enabled || m_stats == null || !m_stats.enabled ||
-            target == null || !target.gameObject.activeInHierarchy || targetStats == null ||
-            !targetStats.isActiveAndEnabled || m_coverMask.value == 0)
-            return false;
+        //if (!gameObject.activeSelf && !enabled) enabled = true;
+        //if (!enabled || m_agent == null || !m_agent.enabled || m_stats == null || !m_stats.enabled ||
+        //    target == null || !target.gameObject.activeInHierarchy || targetStats == null ||
+        //    !targetStats.isActiveAndEnabled || m_coverMask.value == 0)
+        //    return false;
 
         m_target = target;
         m_targetStats = targetStats;

@@ -2156,6 +2156,65 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6096facd1eea5444fb47a7f1c1f9609f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!1 &1319265800
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1319265802}
+  - component: {fileID: 1319265801}
+  m_Layer: 0
+  m_Name: SpawnManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1319265801
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1319265800}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cd5bf81b29e94380b7c8156d5efb8d12, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZombieSpawner
+  m_waves:
+  - m_waveName: test
+    m_zombieGroups:
+    - m_zombiePrefab: {fileID: 3186400148902723353, guid: abfba03f435abbc47a2d28f3f68e1296, type: 3}
+      m_zombieName: test
+      m_zombieCount: 20
+    m_spawnInterval: 2
+  m_aliveCap: 40
+  m_spawnPoints:
+  - {fileID: 55558144}
+  m_spawnedZombieParent: {fileID: 55558144}
+  m_playerSafetyRadius: 5
+  m_navMeshSampleRadius: 2
+  m_spawnPointScanLimit: 8
+  m_navMeshAreaMask: -1
+--- !u!4 &1319265802
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1319265800}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1458601820
 GameObject:
   m_ObjectHideFlags: 0
@@ -2211,8 +2270,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1649067869617e24bba069b54f4d0571, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GamePlayController
-  m_playerController: {fileID: 0}
-  m_zombieSpawner: {fileID: 0}
+  m_playerController: {fileID: 2142624961}
+  m_zombieSpawner: {fileID: 1319265801}
   m_playerSpawnPoint: {fileID: 0}
   m_gameState: 0
   m_nextGameState: 0
@@ -2573,67 +2632,17 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 4433612993202653021, guid: abebee815e01650478f45690cbe51c46, type: 3}
   m_PrefabInstance: {fileID: 1057690853}
   m_PrefabAsset: {fileID: 0}
---- !u!1001 &2870274359582541414
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 0}
-    m_Modifications:
-    - target: {fileID: 333876921758565809, guid: abfba03f435abbc47a2d28f3f68e1296, type: 3}
-      propertyPath: m_target
-      value: 
-      objectReference: {fileID: 2142624957}
-    - target: {fileID: 1646963875381551904, guid: abfba03f435abbc47a2d28f3f68e1296, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 6.65
-      objectReference: {fileID: 0}
-    - target: {fileID: 1646963875381551904, guid: abfba03f435abbc47a2d28f3f68e1296, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 1646963875381551904, guid: abfba03f435abbc47a2d28f3f68e1296, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: -3.60277
-      objectReference: {fileID: 0}
-    - target: {fileID: 1646963875381551904, guid: abfba03f435abbc47a2d28f3f68e1296, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 1646963875381551904, guid: abfba03f435abbc47a2d28f3f68e1296, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 1646963875381551904, guid: abfba03f435abbc47a2d28f3f68e1296, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 1646963875381551904, guid: abfba03f435abbc47a2d28f3f68e1296, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 1646963875381551904, guid: abfba03f435abbc47a2d28f3f68e1296, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 1646963875381551904, guid: abfba03f435abbc47a2d28f3f68e1296, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 1646963875381551904, guid: abfba03f435abbc47a2d28f3f68e1296, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3186400148902723353, guid: abfba03f435abbc47a2d28f3f68e1296, type: 3}
-      propertyPath: m_Name
-      value: NormalZombie
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: abfba03f435abbc47a2d28f3f68e1296, type: 3}
+--- !u!114 &2142624961 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8258627722015222540, guid: abebee815e01650478f45690cbe51c46, type: 3}
+  m_PrefabInstance: {fileID: 1057690853}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eefebc09faa65874f992bbf760f3cbfb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerController
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -2646,5 +2655,5 @@ SceneRoots:
   - {fileID: 1080909319}
   - {fileID: 454666519}
   - {fileID: 1458601824}
-  - {fileID: 2870274359582541414}
   - {fileID: 329351442}
+  - {fileID: 1319265802}
