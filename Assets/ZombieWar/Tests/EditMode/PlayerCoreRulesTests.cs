@@ -6,18 +6,18 @@ public class PlayerCoreRulesTests
     [Test]
     public void DiagonalMoveIsClampedButAnalogIsPreserved()
     {
-        Assert.That(PlayerControlRules.Move(Vector2.one).magnitude, Is.EqualTo(1f).Within(0.0001f));
-        Assert.That(PlayerControlRules.Move(new Vector2(0.2f, 0f)).magnitude, Is.EqualTo(0.2f).Within(0.0001f));
+        Assert.That(PlayerController.Move(Vector2.one).magnitude, Is.EqualTo(1f).Within(0.0001f));
+        Assert.That(PlayerController.Move(new Vector2(0.2f, 0f)).magnitude, Is.EqualTo(0.2f).Within(0.0001f));
     }
 
     [Test]
     public void AimWinsOverMoveAndReleaseFallsBackToMoveOrLastFacing()
     {
-        Assert.That(PlayerControlRules.Facing(Vector2.up, Vector2.left, Vector3.forward, 0.25f), Is.EqualTo(Vector3.left));
-        Assert.That(PlayerControlRules.Facing(Vector2.up, Vector2.zero, Vector3.left, 0.25f), Is.EqualTo(Vector3.forward));
-        Assert.That(PlayerControlRules.Facing(Vector2.zero, Vector2.zero, Vector3.left, 0.25f), Is.EqualTo(Vector3.left));
-        Assert.That(PlayerControlRules.IsAiming(new Vector2(0.25f, 0f), 0.25f), Is.False);
-        Assert.That(PlayerControlRules.IsAiming(new Vector2(0.251f, 0f), 0.25f), Is.True);
+        Assert.That(PlayerController.Facing(Vector2.up, Vector2.left, Vector3.forward, 0.25f), Is.EqualTo(Vector3.left));
+        Assert.That(PlayerController.Facing(Vector2.up, Vector2.zero, Vector3.left, 0.25f), Is.EqualTo(Vector3.forward));
+        Assert.That(PlayerController.Facing(Vector2.zero, Vector2.zero, Vector3.left, 0.25f), Is.EqualTo(Vector3.left));
+        Assert.That(PlayerController.IsAiming(new Vector2(0.25f, 0f), 0.25f), Is.False);
+        Assert.That(PlayerController.IsAiming(new Vector2(0.251f, 0f), 0.25f), Is.True);
     }
 
     [Test]
@@ -26,7 +26,7 @@ public class PlayerCoreRulesTests
         var target = new GameObject("Health test");
         try
         {
-            var health = target.AddComponent<PlayerHealth>();
+            var health = target.AddComponent<PlayerStats>();
             health.RestoreFullHealth();
             int deaths = 0;
             health.Died += () => deaths++;

@@ -1,5 +1,7 @@
 # Zombie War Player Core Implementation Plan
 
+> **Paused / scope superseded — 2026-09-08:** Chủ project hoãn prefab, visual/animation và mọi test/build; chuyển sang scripts-only Core/Combat/Enemies. Xem [scripts-only design](../specs/2026-09-08-zombie-war-scripts-core-design.md). Không áp tiếp các code blocks/API cũ lên scripts user vừa sửa.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Tạo một player twin-stick có movement/collision, Rifle hitscan, animation, HP và pause/reset, kiểm chứng trong test arena rồi tích hợp vào GameplayZombie.

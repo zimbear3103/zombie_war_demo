@@ -1,5 +1,7 @@
 # Zombie War MVP Implementation Plan
 
+> **Scope update — 2026-09-08:** Chủ project chuyển sang scripts-only Core/Combat/Enemies, reuse `GamePlayController`, stats runtime và survival 180 giây với các wave nối tiếp. Xem [scripts-only design](../specs/2026-09-08-zombie-war-scripts-core-design.md). Chưa tiếp tục các bước prefab/visual/animation/test/build bên dưới; nội dung cũ giữ làm roadmap lịch sử, không phải lệnh thực thi hiện tại.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Deliver a polished, playable 3D top-down Zombie War Android prototype in six working days, with the mandatory controls, weapons, zombie AI, physics bomb, two levels, shader effects, UI and submission package.

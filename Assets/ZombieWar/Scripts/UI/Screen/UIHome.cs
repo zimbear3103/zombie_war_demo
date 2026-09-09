@@ -11,26 +11,21 @@ public class UIHome : UIScreen
     [SerializeField] private TextMeshProUGUI m_starText;
     [SerializeField] private TextMeshProUGUI m_favoriteText;
     [SerializeField] private Button m_settingButton;
+    [SerializeField] private Button m_playButton;
 
 
     public override void Show()
     {
         base.Show();
-        OnSetCoins(UserProfile.Instance.Coin);
-        OnSetStars(UserProfile.Instance.TotalStars);
         SoundManager.Instance.OnPlayMusic(ESoundId.Bg_MainMenu, isLoop: true, 1f);
     }
 
-
-    public void OnSetCoins(int coins)
+    private void OnStartGame()
     {
-        m_coinsText.text = coins.ToString();
-    }
+        UIManager.Instance.ShowScreen(ScreenType.Gameplay);
+        SoundManager.Instance.OnPlaySfxAudio(ESoundId.UI_Click_ButtonMain);
 
-    private void OnSetStars(int totalStars)
-    {
-        if (m_starText != null)
-            m_starText.text = totalStars.ToString();
+        // add start game
     }
 
     private void OnSettingButtonPressed()

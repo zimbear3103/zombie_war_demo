@@ -11,10 +11,11 @@ public class ObjectPooling : Singleton<ObjectPooling>
         public Transform parent;
     }
 
-    [Tooltip("Pools filled at Start so the first spawns cause no Instantiate spike mid-song")]
+    [Tooltip("Pools filled at Start so the first spawns cause no Instantiate spike during gameplay")]
     [SerializeField] private PrewarmEntry[] m_prewarmEntries;
 
     private readonly Dictionary<GameObject, List<GameObject>> m_pools = new();
+    private Transform m_inactiveCreationRoot;
 
     private void Start()
     {
@@ -30,6 +31,9 @@ public class ObjectPooling : Singleton<ObjectPooling>
 
     public void Prewarm(GameObject prefab, int count, Transform parent = null)
     {
+        if (prefab == null || count <= 0)
+            return;
+
         var pool = GetPool(prefab);
         while (pool.Count < count)
         {
@@ -39,8 +43,19 @@ public class ObjectPooling : Singleton<ObjectPooling>
 
     public GameObject Spawn(GameObject prefab, Transform parent = null)
     {
-        var pool = GetPool(prefab);
+        var instance = AcquireInactive(prefab, parent);
+        if (instance != null)
+            instance.SetActive(true);
 
+        return instance;
+    }
+
+    public GameObject AcquireInactive(GameObject prefab, Transform parent = null)
+    {
+        if (prefab == null)
+            return null;
+
+        var pool = GetPool(prefab);
         for (int i = pool.Count - 1; i >= 0; i--)
         {
             if (pool[i] == null)
@@ -55,14 +70,11 @@ public class ObjectPooling : Singleton<ObjectPooling>
                 if (parent != null && instance.transform.parent != parent)
                     instance.transform.SetParent(parent, false);
 
-                instance.SetActive(true);
                 return instance;
             }
         }
 
-        var created = CreateInstance(prefab, parent, pool);
-        created.SetActive(true);
-        return created;
+        return CreateInstance(prefab, parent, pool);
     }
 
     // Releases an instance back to its pool.
@@ -84,12 +96,24 @@ public class ObjectPooling : Singleton<ObjectPooling>
 
     private GameObject CreateInstance(GameObject prefab, Transform parent, List<GameObject> pool)
     {
-        bool wasActive = prefab.activeSelf;
-        prefab.SetActive(false);
-        var instance = Instantiate(prefab, parent != null ? parent : transform);
-        prefab.SetActive(wasActive);
+        Transform targetParent = parent != null ? parent : transform;
+        var instance = Instantiate(prefab, GetInactiveCreationRoot());
+        instance.SetActive(false);
+        instance.transform.SetParent(targetParent, false);
 
         pool.Add(instance);
         return instance;
+    }
+
+    private Transform GetInactiveCreationRoot()
+    {
+        if (m_inactiveCreationRoot != null)
+            return m_inactiveCreationRoot;
+
+        var root = new GameObject("Pool Inactive Creation Root");
+        root.transform.SetParent(transform, false);
+        root.SetActive(false);
+        m_inactiveCreationRoot = root.transform;
+        return m_inactiveCreationRoot;
     }
 }

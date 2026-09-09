@@ -26,6 +26,7 @@ public class UIInGame : UIScreen
     private float[] m_starThresholds;
     private bool[] m_starLit;
     private bool m_crownLit;
+
     private GamePlayController.GameStateType m_lastGameState = GamePlayController.GameStateType.None;
 
     private void Awake()
@@ -50,70 +51,6 @@ public class UIInGame : UIScreen
     {
         m_settingButton.onClick.RemoveListener(OnSettingButtonPressed);
     }
-
-    private void Update()
-    {
-    }
-
-    private void ResetProgress()
-    {
-        m_progressSlider.value = 0f;
-
-        if (m_starThresholds == null || m_starThresholds.Length != m_stars.Length)
-        {
-            m_starThresholds = new float[m_stars.Length];
-            m_starLit = new bool[m_stars.Length];
-        }
-
-        var sliderRect = (RectTransform)m_progressSlider.transform;
-        for (int i = 0; i < m_stars.Length; i++)
-        {
-            float x = sliderRect.InverseTransformPoint(m_stars[i].rectTransform.position).x;
-            m_starThresholds[i] = Mathf.InverseLerp(sliderRect.rect.xMin, sliderRect.rect.xMax, x);
-
-            m_starLit[i] = false;
-            m_stars[i].color = m_dimColor;
-            m_stars[i].rectTransform.localScale = Vector3.one;
-        }
-
-        m_crownLit = false;
-        if (m_crown != null)
-        {
-            m_crown.color = Color.white;
-            m_crown.rectTransform.localScale = Vector3.one;
-        }
-    }
-
-    private void CompleteProgress()
-    {
-        m_progressSlider.value = 1f;
-
-        if (m_starLit != null)
-        {
-            for (int i = 0; i < m_stars.Length; i++)
-            {
-                if (!m_starLit[i])
-                {
-                    m_starLit[i] = true;
-                    LightUp(m_stars[i]);
-                }
-            }
-        }
-
-        if (!m_crownLit && m_crown != null)
-        {
-            m_crownLit = true;
-            LightUp(m_crown);
-        }
-    }
-
-    private void LightUp(Image icon)
-    {
-        icon.color = m_litColor;
-        StartCoroutine(Tweener.IE_LocalScale(
-            icon.rectTransform, Vector3.one * m_popScale, Vector3.one, m_popTime, Tweener.Ease.OutBack));
-    }
-
 
     private void OnSettingButtonPressed()
     {

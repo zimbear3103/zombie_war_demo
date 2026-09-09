@@ -32,4 +32,27 @@ public class SceneController : PersistenceSingleton<SceneController>
         }
         m_asyncOp = null;
     }
+
+    public IEnumerator LoadGamePlay(Action<float> updateCallback = null, Action callback = null)
+    {
+        m_asyncOp = SceneManager.LoadSceneAsync(2);
+        m_asyncOp.allowSceneActivation = false;
+
+        while (!m_asyncOp.isDone)
+        {
+            float progress = Mathf.Clamp(m_asyncOp.progress, 0.0f, 0.9f);
+            updateCallback?.Invoke(progress);
+            yield return new WaitForSeconds(m_sceneLoadingDelayTime);
+
+            if (progress >= 0.9f)
+            {
+                yield return new WaitForSeconds(m_sceneActivationDelayTime);
+                callback?.Invoke();
+                m_asyncOp.allowSceneActivation = true;
+            }
+
+            yield return null;
+        }
+        m_asyncOp = null;
+    }
 }
