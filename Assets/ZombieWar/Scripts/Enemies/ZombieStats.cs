@@ -56,6 +56,7 @@ public class ZombieStats : MonoBehaviour, IDamageable
 
     public void TakeDamage(DamageInfo damageInfo)
     {
+        Debug.Log($"Zombie took damage: {damageInfo.amount} from {damageInfo.source?.name ?? "Unknown"} at {damageInfo.hitPoint}");
         float amount = damageInfo.amount;
         if (!m_damageEnabled || !isActiveAndEnabled || !IsAlive || !IsFinite(amount) || amount <= 0f)
             return;

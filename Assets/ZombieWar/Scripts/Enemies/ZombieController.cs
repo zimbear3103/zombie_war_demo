@@ -10,6 +10,7 @@ public class ZombieController : MonoBehaviour
     [SerializeField] private LayerMask m_coverMask = Physics.DefaultRaycastLayers;
     [SerializeField, Min(0.01f)] private float m_knockbackDeceleration = 20f;
 
+    [SerializeField] private Animator m_animator;
     [SerializeField]
     private Transform m_target;
     private PlayerStats m_targetStats;
@@ -22,7 +23,8 @@ public class ZombieController : MonoBehaviour
     private bool m_isSpawned;
     private bool m_componentsCached;
     private readonly RaycastHit[] m_coverHits = new RaycastHit[16];
-
+    private Vector2 m_velocity;
+    private Vector2 m_smoothDeltaPosition;
     public ZombieStats Stats => m_stats;
     public bool IsSpawnReady => m_isSpawned && isActiveAndEnabled && m_stats != null &&
                                 m_stats.isActiveAndEnabled && CanUseAgent();
@@ -78,6 +80,7 @@ public class ZombieController : MonoBehaviour
         SetAgentStopped(false);
         if (m_repathTimer <= 0f)
         {
+            //SynchronizeAnimatorOrAgent();
             TrySetDestination(m_target.position);
             m_repathTimer = GetPositiveValue(m_repathInterval, 0.25f);
         }
@@ -105,12 +108,12 @@ public class ZombieController : MonoBehaviour
     public bool PrepareForSpawn(Transform target, PlayerStats targetStats, bool gameplayEnabled)
     {
         CacheComponents();
-        // External component disable releases the instance; restore it only while inactive.
-        //if (!gameObject.activeSelf && !enabled) enabled = true;
-        //if (!enabled || m_agent == null || !m_agent.enabled || m_stats == null || !m_stats.enabled ||
-        //    target == null || !target.gameObject.activeInHierarchy || targetStats == null ||
-        //    !targetStats.isActiveAndEnabled || m_coverMask.value == 0)
-        //    return false;
+
+        if (!gameObject.activeSelf && !enabled) enabled = true;
+        if (!enabled || m_agent == null || !m_agent.enabled || m_stats == null || !m_stats.enabled ||
+            target == null || !target.gameObject.activeInHierarchy || targetStats == null ||
+            !targetStats.isActiveAndEnabled || m_coverMask.value == 0)
+            return false;
 
         m_target = target;
         m_targetStats = targetStats;
@@ -128,6 +131,43 @@ public class ZombieController : MonoBehaviour
         return true;
     }
 
+    private void SynchronizeAnimatorOrAgent()
+    {
+        Vector3  worldDeltaPosition = m_agent.nextPosition - transform.position;
+        worldDeltaPosition.y = 0f;
+
+        float dx = Vector3.Dot(transform.right, worldDeltaPosition);
+        float dy = Vector3.Dot(transform.forward, worldDeltaPosition);
+
+        Vector2 deltaPosition = new Vector2(dx, dy);
+
+        float smooth = Mathf.Min(1, Time.deltaTime / 0.1f);
+        m_smoothDeltaPosition = Vector2.Lerp(m_smoothDeltaPosition, deltaPosition, smooth);
+
+        m_velocity = m_smoothDeltaPosition * Time.deltaTime;
+
+        if (m_agent.remainingDistance <= m_agent.stoppingDistance)
+        {
+            m_velocity = Vector2.Lerp(
+                Vector2.zero, 
+                m_velocity, 
+                m_agent.remainingDistance/m_agent.stoppingDistance);
+        }
+
+        bool shouldMode = m_velocity.magnitude > 0.5f && m_agent.remainingDistance > m_agent.stoppingDistance;
+
+        m_animator.SetBool("move", m_agent.velocity.magnitude > 0.5f);
+        m_animator.SetFloat("locomotion", m_agent.velocity.magnitude);
+
+        float deltaMagnitude = worldDeltaPosition.magnitude;
+        if (deltaMagnitude > m_agent.radius/2f) {
+            transform.position = Vector3.Lerp(
+               m_animator.rootPosition,
+               m_agent.nextPosition,
+               smooth);
+        }
+
+    }
     public void SetGameplayEnabled(bool value)
     {
         m_gameplayEnabled = value && m_isSpawned && m_stats != null && m_stats.IsAlive;
@@ -151,6 +191,11 @@ public class ZombieController : MonoBehaviour
 
         m_agent = GetComponent<NavMeshAgent>();
         m_stats = GetComponent<ZombieStats>();
+        m_animator = GetComponentInChildren<Animator>();
+
+        //m_animator.applyRootMotion = true;
+        //m_agent.updatePosition = false;
+        //m_agent.updateRotation = true;
         if (m_stats != null)
         {
             m_stats.Died += HandleStatsDied;
@@ -192,6 +237,7 @@ public class ZombieController : MonoBehaviour
             ? direction.normalized
             : transform.forward;
 
+        m_animator.SetTrigger("Attack");
         m_targetStats.TakeDamage(new DamageInfo(
             m_stats.Damage,
             m_target.position,
@@ -199,6 +245,7 @@ public class ZombieController : MonoBehaviour
             0f,
             gameObject));
         m_attackCooldownRemaining = m_stats.AttackInterval;
+
     }
 
     private bool IsMeleeBlocked()
@@ -299,4 +346,13 @@ public class ZombieController : MonoBehaviour
     }
 
     private static bool IsFinite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
+
+    private void OnAnimatorMove()
+    {
+        Vector3 rootPosition = m_animator.rootPosition;
+        rootPosition.y = m_agent.nextPosition.y;
+        transform.position = rootPosition;
+        transform.rotation = m_animator.rootRotation;
+        m_agent.nextPosition = rootPosition;
+    }
 }

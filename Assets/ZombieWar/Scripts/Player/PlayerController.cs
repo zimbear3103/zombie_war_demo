@@ -27,6 +27,7 @@ public class PlayerController : MonoBehaviour
     private bool m_hasFocus = true;
     private bool m_applicationPaused;
     private bool m_reportedLoadoutError;
+    private bool isCharging;
 
     public PlayerStats Stats => m_stats != null ? m_stats : (m_stats = GetComponent<PlayerStats>());
     public WeaponController ActiveWeapon => m_activeWeapon;
@@ -98,13 +99,10 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
-        m_lastFacing = Facing(m_moveInput, m_aimInput, m_lastFacing, m_aimDeadZone);
-        Transform facingRoot = m_facingRoot != null ? m_facingRoot : transform;
-        facingRoot.rotation = Quaternion.LookRotation(m_lastFacing, Vector3.up);
+        // Movement and shooting run independently during the same frame.
         onPlayerMove();
-
-        if (m_activeWeapon != null && IsAiming(m_aimInput, m_aimDeadZone))
-            m_activeWeapon.TryFire(m_lastFacing, Time.time);
+        UpdateFacing();
+        UpdateShooting();
     }
 
     public void onPlayerMove()
@@ -118,6 +116,21 @@ public class PlayerController : MonoBehaviour
         Vector3 movement = Move(m_moveInput);
         transform.Translate(movement * m_stats.MoveSpeed * Time.deltaTime, Space.World);
         NormalizedMoveSpeed = m_stats.MoveSpeed > 0f ? movement.magnitude : 0f;
+    }
+
+    private void UpdateFacing()
+    {
+        m_lastFacing = Facing(Vector2.zero, m_aimInput, m_lastFacing, m_aimDeadZone);
+        Transform facingRoot = m_facingRoot != null ? m_facingRoot : transform;
+        facingRoot.rotation = Quaternion.LookRotation(m_lastFacing, Vector3.up);
+    }
+
+    private void UpdateShooting()
+    {
+        if (m_activeWeapon == null) return;
+        if (!IsAiming(m_aimInput, m_aimDeadZone)) return;
+
+        m_activeWeapon.TryFire(m_lastFacing, Time.time);
     }
 
     public void SetGameplayEnabled(bool value)
@@ -146,6 +159,11 @@ public class PlayerController : MonoBehaviour
     public bool TryCollectWeapon(WeaponScriptableObject data)
     {
         return CanAct && data != null && AddOrEquipWeapon(data);
+    }
+
+    public bool TryCollectBomb(BombController data)
+    {
+        return CanAct && data != null;
     }
 
     private bool AddOrEquipWeapon(WeaponScriptableObject data)
@@ -251,9 +269,8 @@ public class PlayerController : MonoBehaviour
 
     public static Vector3 Facing(Vector2 move, Vector2 aim, Vector3 previous, float deadZone)
     {
+        // Keep the existing signature; movement no longer controls facing.
         if (IsAiming(aim, deadZone)) return Move(aim).normalized;
-        Vector3 direction = Move(move);
-        if (direction.sqrMagnitude > 0.0001f) return direction.normalized;
         previous.y = 0f;
         return previous.sqrMagnitude > 0.0001f ? previous.normalized : Vector3.forward;
     }
@@ -263,5 +280,27 @@ public class PlayerController : MonoBehaviour
         if (float.IsNaN(input.x) || float.IsNaN(input.y) || float.IsInfinity(input.x) || float.IsInfinity(input.y))
             return Vector2.zero;
         return Vector2.ClampMagnitude(input, 1f);
+    }
+
+    public void onReloadGun()
+    {
+        if (!CanAct) return;
+
+        if (m_activeWeapon != null)
+        {
+            m_activeWeapon.TryReload();
+        }
+    }
+
+    public void OnThrowBomb()
+    {
+               if (!CanAct) return;
+        // Implement bomb throwing logic here
+    }
+
+    private void StartThrowBomb()
+    {
+        if (!CanAct) return;
+
     }
 }

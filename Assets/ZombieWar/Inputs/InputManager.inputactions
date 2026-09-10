@@ -127,17 +127,6 @@
                 },
                 {
                     "name": "",
-                    "id": "cf525eaa-4578-4785-bff8-fc452afc034a",
-                    "path": "<Mouse>/leftButton",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": ";Keyboard&Mouse",
-                    "action": "Bomb",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
                     "id": "3e3766ef-101d-4bd7-ba14-73275d785214",
                     "path": "<Touchscreen>/primaryTouch/tap",
                     "interactions": "",
@@ -172,13 +161,68 @@
                 {
                     "name": "",
                     "id": "f1ad11ef-1691-4c05-9110-7a78e92b5f96",
-                    "path": "<Keyboard>/enter",
+                    "path": "<Keyboard>/q",
                     "interactions": "",
                     "processors": "",
                     "groups": "Keyboard&Mouse",
                     "action": "Bomb",
                     "isComposite": false,
                     "isPartOfComposite": false
+                },
+                {
+                    "name": "2D Vector",
+                    "id": "763cb919-e03e-4c75-a398-919febc07734",
+                    "path": "2DVector",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Aim",
+                    "isComposite": true,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "up",
+                    "id": "fb54d8b1-ae01-499d-a53f-ad678da47ebb",
+                    "path": "<Keyboard>/upArrow",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Aim",
+                    "isComposite": false,
+                    "isPartOfComposite": true
+                },
+                {
+                    "name": "down",
+                    "id": "f5ba59d5-7cca-401d-a5a1-40436a2d8893",
+                    "path": "<Keyboard>/downArrow",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Aim",
+                    "isComposite": false,
+                    "isPartOfComposite": true
+                },
+                {
+                    "name": "left",
+                    "id": "1070110d-d535-4fb3-b05d-b314042be301",
+                    "path": "<Keyboard>/leftArrow",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Aim",
+                    "isComposite": false,
+                    "isPartOfComposite": true
+                },
+                {
+                    "name": "right",
+                    "id": "3078a4fa-1fd2-43dc-93f1-a34ea824d814",
+                    "path": "<Keyboard>/rightArrow",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Aim",
+                    "isComposite": false,
+                    "isPartOfComposite": true
                 },
                 {
                     "name": "",
@@ -193,33 +237,33 @@
                 },
                 {
                     "name": "",
-                    "id": "b3bc4716-653b-4f07-9560-1fd1008be82d",
-                    "path": "<Pointer>/delta",
+                    "id": "d1f66450-69db-4dbe-b8e6-1bba2a8a55e2",
+                    "path": "<Keyboard>/e",
                     "interactions": "",
                     "processors": "",
-                    "groups": ";Keyboard&Mouse;Touch",
-                    "action": "Aim",
+                    "groups": "Keyboard&Mouse",
+                    "action": "SwitchWeapon",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
                 {
                     "name": "",
-                    "id": "c8049013-ed2d-46ba-ae52-06b59dc0282d",
-                    "path": "<Joystick>/{Hatswitch}",
+                    "id": "259a9d9b-ce57-4e63-82ee-de8d55fff6bd",
+                    "path": "<Touchscreen>/primaryTouch/tap",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": ";Touch",
+                    "action": "SwitchWeapon",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "a827042c-cb33-4dfb-a219-fbe07bd7c144",
+                    "path": "<Joystick>/trigger",
                     "interactions": "",
                     "processors": "",
                     "groups": "Joystick",
-                    "action": "Aim",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
-                    "id": "c2099fe3-9741-457b-8736-7a62dba88a90",
-                    "path": "",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "",
                     "action": "SwitchWeapon",
                     "isComposite": false,
                     "isPartOfComposite": false
