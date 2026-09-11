@@ -4,6 +4,8 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class BulletBehaviour : ProjectileBehaviour
 {
+    [SerializeField] private GameObject m_bullletTrailEffect;
+
     private float m_damage;
     private float m_knockbackForce;
 
@@ -23,5 +25,9 @@ public class BulletBehaviour : ProjectileBehaviour
 
         damageable.TakeDamage(new DamageInfo(m_damage, hit.point, m_direction,
             m_knockbackForce, m_owner.gameObject));
+    }
+
+    private void OnSetupBulletTrail()
+    {
     }
 }

@@ -11,7 +11,23 @@ public class ZombieController : MonoBehaviour
     [SerializeField, Min(0.01f)] private float m_knockbackDeceleration = 20f;
 
     [SerializeField] private Animator m_animator;
-    [SerializeField]
+    [Tooltip("X: Moving blend (0-1). Y: measured world speed at playback multiplier 1. Recalibrate after changing model scale or clips. Keep speeds positive and increasing.")]
+    [SerializeField] private AnimationCurve m_movementSpeedByBlend = new AnimationCurve(
+        new Keyframe(0f, 0.07218f, 0.1138f, 0.1138f),
+        new Keyframe(0.25f, 0.10063f, 0.1138f, 0.21368f),
+        new Keyframe(0.5f, 0.15405f, 0.21368f, 0.46516f),
+        new Keyframe(0.75f, 0.27034f, 0.46516f, 1.44808f),
+        new Keyframe(1f, 0.63236f, 1.44808f, 1.44808f));
+    [Tooltip("Animator world scale used when measuring the movement speed curve.")]
+    [SerializeField, Min(0.0001f)] private float m_animationReferenceScale = 0.1f;
+    [SerializeField, Min(0f)] private float m_animationDampTime = 0.1f;
+
+    private static readonly int m_moveHash = Animator.StringToHash("move");
+    private static readonly int m_locomotionHash = Animator.StringToHash("locomotion");
+    private static readonly int m_playbackSpeedHash = Animator.StringToHash("movementPlaybackSpeed");
+    private static readonly int m_attackHash = Animator.StringToHash("Attack");
+    private static readonly int m_attackStateHash = Animator.StringToHash("attack");
+
     private Transform m_target;
     private PlayerStats m_targetStats;
     private NavMeshAgent m_agent;
@@ -22,9 +38,8 @@ public class ZombieController : MonoBehaviour
     private bool m_gameplayEnabled;
     private bool m_isSpawned;
     private bool m_componentsCached;
+    private float m_animationScaleMultiplier = 1f;
     private readonly RaycastHit[] m_coverHits = new RaycastHit[16];
-    private Vector2 m_velocity;
-    private Vector2 m_smoothDeltaPosition;
     public ZombieStats Stats => m_stats;
     public bool IsSpawnReady => m_isSpawned && isActiveAndEnabled && m_stats != null &&
                                 m_stats.isActiveAndEnabled && CanUseAgent();
@@ -42,11 +57,18 @@ public class ZombieController : MonoBehaviour
             return;
 
         ConfigureAgent();
+        ResetAnimation();
         m_stats.SetDamageEnabled(m_gameplayEnabled);
         SetAgentStopped(!m_gameplayEnabled);
     }
 
     private void Update()
+    {
+        UpdateMovement();
+        SynchronizeAnimation();
+    }
+
+    private void UpdateMovement()
     {
         if (!CanPursueTarget())
         {
@@ -78,9 +100,11 @@ public class ZombieController : MonoBehaviour
         }
 
         SetAgentStopped(false);
+        if (CanUseAnimator())
+            m_animator.ResetTrigger(m_attackHash);
+
         if (m_repathTimer <= 0f)
         {
-            //SynchronizeAnimatorOrAgent();
             TrySetDestination(m_target.position);
             m_repathTimer = GetPositiveValue(m_repathInterval, 0.25f);
         }
@@ -128,46 +152,86 @@ public class ZombieController : MonoBehaviour
         ConfigureAgent();
         ResetAgentPath();
         SetAgentStopped(!gameplayEnabled);
+        ResetAnimation();
         return true;
     }
 
-    private void SynchronizeAnimatorOrAgent()
+    private void SynchronizeAnimation()
     {
-        Vector3  worldDeltaPosition = m_agent.nextPosition - transform.position;
-        worldDeltaPosition.y = 0f;
+        if (!CanUseAnimator())
+            return;
 
-        float dx = Vector3.Dot(transform.right, worldDeltaPosition);
-        float dy = Vector3.Dot(transform.forward, worldDeltaPosition);
+        // Pool parents can change the world scale without changing the prefab.
+        m_animationScaleMultiplier = GetPositiveValue(Mathf.Abs(m_animator.transform.lossyScale.z), 0.1f)
+            / GetPositiveValue(m_animationReferenceScale, 0.1f);
+        bool canPursue = CanPursueTarget();
+        Vector3 velocity = canPursue && !m_agent.isStopped ? m_agent.velocity : Vector3.zero;
+        velocity.y = 0f;
+        float speed = velocity.magnitude;
+        bool moving = speed > 0.05f;
+        m_animator.SetBool(m_moveHash, moving);
 
-        Vector2 deltaPosition = new Vector2(dx, dy);
-
-        float smooth = Mathf.Min(1, Time.deltaTime / 0.1f);
-        m_smoothDeltaPosition = Vector2.Lerp(m_smoothDeltaPosition, deltaPosition, smooth);
-
-        m_velocity = m_smoothDeltaPosition * Time.deltaTime;
-
-        if (m_agent.remainingDistance <= m_agent.stoppingDistance)
+        if (!moving)
         {
-            m_velocity = Vector2.Lerp(
-                Vector2.zero, 
-                m_velocity, 
-                m_agent.remainingDistance/m_agent.stoppingDistance);
+            m_animator.SetFloat(m_locomotionHash, 0f);
+            m_animator.SetFloat(m_playbackSpeedHash, 1f);
+            return;
         }
 
-        bool shouldMode = m_velocity.magnitude > 0.5f && m_agent.remainingDistance > m_agent.stoppingDistance;
+        float blend = GetLocomotionBlend(speed);
+        m_animator.SetFloat(m_locomotionHash, blend, m_animationDampTime, Time.deltaTime);
 
-        m_animator.SetBool("move", m_agent.velocity.magnitude > 0.5f);
-        m_animator.SetFloat("locomotion", m_agent.velocity.magnitude);
-
-        float deltaMagnitude = worldDeltaPosition.magnitude;
-        if (deltaMagnitude > m_agent.radius/2f) {
-            transform.position = Vector3.Lerp(
-               m_animator.rootPosition,
-               m_agent.nextPosition,
-               smooth);
-        }
-
+        // Match stride cadence to the speed of the currently blended clips.
+        float blendedSpeed = GetAnimationSpeed(m_animator.GetFloat(m_locomotionHash));
+        m_animator.SetFloat(m_playbackSpeedHash, speed / blendedSpeed);
     }
+
+    private float GetLocomotionBlend(float speed)
+    {
+        if (speed <= GetAnimationSpeed(0f)) return 0f;
+        if (speed >= GetAnimationSpeed(1f)) return 1f;
+
+        // Blend Trees synchronize clip cycles, so their speed is not a linear blend.
+        float low = 0f;
+        float high = 1f;
+        for (int i = 0; i < 8; i++)
+        {
+            float middle = (low + high) * 0.5f;
+            if (GetAnimationSpeed(middle) < speed)
+                low = middle;
+            else
+                high = middle;
+        }
+        return (low + high) * 0.5f;
+    }
+
+    private float GetAnimationSpeed(float blend)
+    {
+        float speed = m_movementSpeedByBlend != null && m_movementSpeedByBlend.length > 0
+            ? m_movementSpeedByBlend.Evaluate(blend)
+            : 0.63236f;
+        return GetPositiveValue(speed, 0.63236f) * m_animationScaleMultiplier;
+    }
+
+    private bool CanUseAnimator()
+    {
+        return m_animator != null && m_animator.isActiveAndEnabled &&
+               m_animator.runtimeAnimatorController != null;
+    }
+
+    private void ResetAnimation()
+    {
+        if (!CanUseAnimator())
+            return;
+
+        m_animator.Rebind();
+        m_animator.SetBool(m_moveHash, false);
+        m_animator.SetFloat(m_locomotionHash, 0f);
+        m_animator.SetFloat(m_playbackSpeedHash, 1f);
+        m_animator.ResetTrigger(m_attackHash);
+        m_animator.Update(0f);
+    }
+
     public void SetGameplayEnabled(bool value)
     {
         m_gameplayEnabled = value && m_isSpawned && m_stats != null && m_stats.IsAlive;
@@ -176,6 +240,7 @@ public class ZombieController : MonoBehaviour
             m_stats.SetDamageEnabled(m_gameplayEnabled);
 
         SetAgentStopped(!m_gameplayEnabled);
+        SynchronizeAnimation();
     }
 
     public void PrepareForPool()
@@ -191,11 +256,17 @@ public class ZombieController : MonoBehaviour
 
         m_agent = GetComponent<NavMeshAgent>();
         m_stats = GetComponent<ZombieStats>();
-        m_animator = GetComponentInChildren<Animator>();
+        if (m_animator == null)
+            m_animator = GetComponentInChildren<Animator>();
 
-        //m_animator.applyRootMotion = true;
-        //m_agent.updatePosition = false;
-        //m_agent.updateRotation = true;
+        if (m_animator != null)
+            m_animator.applyRootMotion = false;
+
+        if (m_agent != null)
+        {
+            m_agent.updatePosition = true;
+            m_agent.updateRotation = true;
+        }
         if (m_stats != null)
         {
             m_stats.Died += HandleStatsDied;
@@ -237,7 +308,9 @@ public class ZombieController : MonoBehaviour
             ? direction.normalized
             : transform.forward;
 
-        m_animator.SetTrigger("Attack");
+        if (CanUseAnimator() && m_animator.GetCurrentAnimatorStateInfo(0).shortNameHash != m_attackStateHash &&
+            (!m_animator.IsInTransition(0) || m_animator.GetNextAnimatorStateInfo(0).shortNameHash != m_attackStateHash))
+            m_animator.SetTrigger(m_attackHash);
         m_targetStats.TakeDamage(new DamageInfo(
             m_stats.Damage,
             m_target.position,
@@ -302,6 +375,7 @@ public class ZombieController : MonoBehaviour
         m_gameplayEnabled = false;
         m_stats.SetDamageEnabled(false);
         SetAgentStopped(true);
+        SynchronizeAnimation();
         Died?.Invoke(this);
     }
 
@@ -336,6 +410,7 @@ public class ZombieController : MonoBehaviour
 
         SetAgentStopped(true);
         ResetAgentPath();
+        ResetAnimation();
     }
 
     private static float GetPositiveValue(float value, float fallback)
@@ -347,12 +422,4 @@ public class ZombieController : MonoBehaviour
 
     private static bool IsFinite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
 
-    private void OnAnimatorMove()
-    {
-        Vector3 rootPosition = m_animator.rootPosition;
-        rootPosition.y = m_agent.nextPosition.y;
-        transform.position = rootPosition;
-        transform.rotation = m_animator.rootRotation;
-        m_agent.nextPosition = rootPosition;
-    }
 }

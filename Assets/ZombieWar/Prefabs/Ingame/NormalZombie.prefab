@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 6738212907535058371}
   - component: {fileID: 333876921758565809}
   - component: {fileID: 3738160201020478441}
+  - component: {fileID: 8078718069260048271}
   m_Layer: 0
   m_Name: NormalZombie
   m_TagString: Untagged
@@ -47,7 +48,7 @@ NavMeshAgent:
   m_Enabled: 1
   m_AgentTypeID: 0
   m_Radius: 0.33
-  m_Speed: 3.5
+  m_Speed: 1
   m_Acceleration: 8
   avoidancePriority: 50
   m_AngularSpeed: 120
@@ -96,7 +97,8 @@ MonoBehaviour:
     m_Bits: 4294967295
   m_knockbackDeceleration: 20
   m_animator: {fileID: 7818166854633071541}
-  m_target: {fileID: 0}
+  m_animationReferenceScale: 0.1
+  m_animationDampTime: 0.1
 --- !u!136 &3738160201020478441
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -120,6 +122,22 @@ CapsuleCollider:
   m_Height: 1.907031
   m_Direction: 1
   m_Center: {x: 0, y: 0.928993, z: 0}
+--- !u!114 &8078718069260048271
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3186400148902723353}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7ceb89f2613ed3c49a5c051e5d08e1ee, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TheVayuputra.DissolveEffect
+  targetRenderer: {fileID: 3778142668883967534}
+  duration: 1
+  dissolveParticleSystem: {fileID: 0}
+  reverseDissolveParticleSystem: {fileID: 0}
 --- !u!1001 &7148934890797948235
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -132,6 +150,10 @@ PrefabInstance:
       propertyPath: m_Controller
       value: 
       objectReference: {fileID: 9100000, guid: 52c2e284f2a14994a9edb70ff0fbef39, type: 2}
+    - target: {fileID: 1101599861902114558, guid: 95ddc2cf570e86240a229f81b6acc58b, type: 3}
+      propertyPath: m_ApplyRootMotion
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 5972432009619242558, guid: 95ddc2cf570e86240a229f81b6acc58b, type: 3}
       propertyPath: m_Name
       value: Zombie
@@ -185,6 +207,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 95ddc2cf570e86240a229f81b6acc58b, type: 3}
+--- !u!137 &3778142668883967534 stripped
+SkinnedMeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 6293981507241075557, guid: 95ddc2cf570e86240a229f81b6acc58b, type: 3}
+  m_PrefabInstance: {fileID: 7148934890797948235}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &4224263752416950735 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6460844572556043396, guid: 95ddc2cf570e86240a229f81b6acc58b, type: 3}

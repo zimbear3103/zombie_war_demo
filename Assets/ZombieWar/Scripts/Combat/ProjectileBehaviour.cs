@@ -21,7 +21,6 @@ public abstract class ProjectileBehaviour : MonoBehaviour
     private int m_hitMask;
     private bool m_checkMuzzleObstruction;
     private bool m_isFlying;
-
     public bool IsFlying => m_isFlying;
     public bool HasValidFlightSettings => IsPositiveFinite(m_speed) && IsPositiveFinite(m_lifetime);
 
