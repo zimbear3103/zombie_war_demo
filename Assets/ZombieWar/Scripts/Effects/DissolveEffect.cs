@@ -1,111 +1,281 @@
-using System.Collections;
 using UnityEngine;
+using UnityEngine.Serialization;
+
 namespace TheVayuputra
 {
     public class DissolveEffect : MonoBehaviour
     {
-        private static readonly int DissolveAmountId = Shader.PropertyToID("_Cutoff");
-        private static readonly int EdgeColorId = Shader.PropertyToID("_Edge_Color");
-        private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
-        private static readonly int ColorId = Shader.PropertyToID("_Color");
-        private const float VisibleValue = 1f;
-        private const float DissolvedValue = 0f;
+        private static readonly int m_cutoffId = Shader.PropertyToID("_Cutoff");
+        private static readonly int m_mainTextureId = Shader.PropertyToID("_MainTexture");
+        private static readonly int m_noiseTextureId = Shader.PropertyToID("_NoiseTexture");
+        private static readonly int m_baseMapId = Shader.PropertyToID("_BaseMap");
+        private static readonly int m_mainTexId = Shader.PropertyToID("_MainTex");
+        private const float m_visibleValue = 1f;
+        private const float m_dissolvedValue = 0f;
+        private const float m_defaultDuration = 2f;
 
-        public Renderer targetRenderer;
+        [FormerlySerializedAs("targetRenderer")]
+        [SerializeField] private Renderer m_targetRenderer;
+        [SerializeField] private Material m_dissolveMaterial;
+        [FormerlySerializedAs("duration")]
+        [SerializeField] private float m_duration = m_defaultDuration;
+        [FormerlySerializedAs("dissolveParticleSystem")]
+        [SerializeField] private ParticleSystem m_dissolveParticleSystem;
+        [FormerlySerializedAs("reverseDissolveParticleSystem")]
+        [SerializeField] private ParticleSystem m_reverseDissolveParticleSystem;
 
-        [SerializeField] private float duration = 1f;
-        public ParticleSystem dissolveParticleSystem, reverseDissolveParticleSystem;
+        private Material[] m_originalMaterials;
+        private Material[] m_dissolveMaterials;
+        private Material m_cachedTemplate;
+        private float m_currentValue = m_visibleValue;
+        private float m_startValue;
+        private float m_targetValue;
+        private float m_elapsedTime;
+        private float m_animationDuration;
+        private bool m_isInitialized;
+        private bool m_materialsApplied;
+        private bool m_isPlaying;
 
-        private Material material;
-        private Coroutine currentRoutine;
+        public bool IsPlaying => m_isPlaying;
 
-        void Awake()
+        private void Awake()
         {
-            if (targetRenderer == null)
-                targetRenderer = GetComponent<Renderer>();
-
-            if (targetRenderer == null)
-                return;
-
-            material = targetRenderer.material;
-            if (material.HasProperty(DissolveAmountId))
-                material.SetFloat(DissolveAmountId, VisibleValue);
+            Initialize();
         }
 
+        private void Update()
+        {
+            if (!m_isPlaying)
+                return;
+
+            if (m_targetRenderer == null)
+            {
+                ResetEffect();
+                return;
+            }
+
+            m_elapsedTime += Time.deltaTime;
+            SetCutoff(Mathf.Lerp(m_startValue, m_targetValue, m_elapsedTime / m_animationDuration));
+
+            if (m_elapsedTime < m_animationDuration)
+                return;
+
+            SetCutoff(m_targetValue);
+            m_isPlaying = false;
+            if (m_targetValue == m_visibleValue)
+                RestoreOriginalMaterials();
+        }
+
+        private void OnDisable()
+        {
+            ResetEffect();
+        }
+
+        private void OnDestroy()
+        {
+            ResetEffect();
+            DestroyOwnedMaterials();
+        }
+
+        public bool TryPlayDissolve()
+        {
+            if (!StartDissolve(m_dissolvedValue))
+                return false;
+
+            StopParticles(m_reverseDissolveParticleSystem);
+            PlayParticles(m_dissolveParticleSystem);
+            return true;
+        }
 
         public void PlayDissolve()
         {
-            PlayDissolveParticles();
-            StartDissolve(DissolvedValue);
+            TryPlayDissolve();
         }
 
         public void ReverseDissolve()
         {
-            PlayReverseDissolveParticles();
-            StartDissolve(VisibleValue);
+            if (!StartDissolve(m_visibleValue))
+                return;
+
+            StopParticles(m_dissolveParticleSystem);
+            PlayParticles(m_reverseDissolveParticleSystem);
         }
 
         public void SetMaterial(Material newMaterial)
         {
-            if (newMaterial == null)
+            if (newMaterial == null || newMaterial == m_dissolveMaterial)
                 return;
 
-            if (targetRenderer == null)
-                targetRenderer = GetComponent<Renderer>();
-
-            if (targetRenderer == null)
-                return;
-
-            targetRenderer.material = newMaterial;
-            material = targetRenderer.material;
-
-            if (material.HasProperty(DissolveAmountId))
-                material.SetFloat(DissolveAmountId, VisibleValue);
-        }
-        private void StartDissolve(float targetValue)
-        {
-            if (material == null || !material.HasProperty(DissolveAmountId))
-                return;
-
-            if (currentRoutine != null)
-                StopCoroutine(currentRoutine);
-
-            currentRoutine = StartCoroutine(DissolveRoutine(targetValue));
+            ResetEffect();
+            DestroyOwnedMaterials();
+            m_dissolveMaterial = newMaterial;
         }
 
-        private void PlayDissolveParticles()
+        public void ResetEffect()
         {
-            if (dissolveParticleSystem == null)
-                return;
-
-            dissolveParticleSystem.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-            dissolveParticleSystem.Play(true);
-        }
-        private void PlayReverseDissolveParticles()
-        {
-            if (reverseDissolveParticleSystem == null)
-                return;
-
-            reverseDissolveParticleSystem.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-            reverseDissolveParticleSystem.Play(true);
+            m_isPlaying = false;
+            m_elapsedTime = 0f;
+            RestoreOriginalMaterials();
+            SetCutoff(m_visibleValue);
+            StopParticles(m_dissolveParticleSystem);
+            StopParticles(m_reverseDissolveParticleSystem);
         }
 
-
-        private IEnumerator DissolveRoutine(float target)
+        private bool Initialize()
         {
-            float start = material.GetFloat(DissolveAmountId);
-            float time = 0f;
+            if (m_isInitialized)
+                return m_targetRenderer != null && m_originalMaterials.Length > 0;
 
-            while (time < duration)
+            if (!(m_targetRenderer is SkinnedMeshRenderer) && !(m_targetRenderer is MeshRenderer))
             {
-                time += Time.deltaTime;
-                float value = Mathf.Lerp(start, target, time / Mathf.Max(duration, 0.0001f));
-
-                material.SetFloat(DissolveAmountId, value);
-                yield return null;
+                m_targetRenderer = GetComponentInChildren<SkinnedMeshRenderer>(true);
+                if (m_targetRenderer == null)
+                    m_targetRenderer = GetComponentInChildren<MeshRenderer>(true);
             }
 
-            material.SetFloat(DissolveAmountId, target);
+            if (m_targetRenderer == null)
+                return false;
+
+            m_originalMaterials = m_targetRenderer.sharedMaterials;
+            m_isInitialized = true;
+            return m_originalMaterials.Length > 0;
+        }
+
+        private bool StartDissolve(float targetValue)
+        {
+            if (!isActiveAndEnabled || !Initialize() || !PrepareMaterials())
+            {
+                ResetEffect();
+                return false;
+            }
+
+            if (!m_materialsApplied)
+            {
+                SetCutoff(m_visibleValue);
+                m_targetRenderer.sharedMaterials = m_dissolveMaterials;
+                m_materialsApplied = true;
+            }
+
+            m_animationDuration = m_duration;
+            if (m_animationDuration <= 0f || float.IsNaN(m_animationDuration) || float.IsInfinity(m_animationDuration))
+                m_animationDuration = m_defaultDuration;
+
+            m_startValue = m_currentValue;
+            m_targetValue = targetValue;
+            m_elapsedTime = 0f;
+            m_isPlaying = true;
+            return true;
+        }
+
+        private bool PrepareMaterials()
+        {
+            if (m_dissolveMaterials != null && m_cachedTemplate != m_dissolveMaterial)
+            {
+                ResetEffect();
+                DestroyOwnedMaterials();
+            }
+
+            if (m_dissolveMaterials != null)
+                return true;
+
+            for (int i = 0; i < m_originalMaterials.Length; i++)
+            {
+                Material source = m_dissolveMaterial != null ? m_dissolveMaterial : m_originalMaterials[i];
+                if (!SupportsDissolve(source))
+                    return false;
+            }
+
+            m_dissolveMaterials = new Material[m_originalMaterials.Length];
+            for (int i = 0; i < m_dissolveMaterials.Length; i++)
+            {
+                Material source = m_dissolveMaterial != null ? m_dissolveMaterial : m_originalMaterials[i];
+                Material instance = new Material(source);
+                CopyBaseTexture(m_originalMaterials[i], instance);
+                instance.SetFloat(m_cutoffId, m_visibleValue);
+                m_dissolveMaterials[i] = instance;
+            }
+
+            m_cachedTemplate = m_dissolveMaterial;
+            return true;
+        }
+
+        private static bool SupportsDissolve(Material material)
+        {
+            return material != null
+                && material.HasProperty(m_cutoffId)
+                && material.HasProperty(m_mainTextureId)
+                && material.HasProperty(m_noiseTextureId);
+        }
+
+        private static void CopyBaseTexture(Material source, Material destination)
+        {
+            if (source == null)
+                return;
+
+            int sourceProperty;
+            if (source.HasProperty(m_baseMapId))
+                sourceProperty = m_baseMapId;
+            else if (source.HasProperty(m_mainTexId))
+                sourceProperty = m_mainTexId;
+            else if (source.HasProperty(m_mainTextureId))
+                sourceProperty = m_mainTextureId;
+            else
+                return;
+
+            destination.SetTexture(m_mainTextureId, source.GetTexture(sourceProperty));
+            destination.SetTextureScale(m_mainTextureId, source.GetTextureScale(sourceProperty));
+            destination.SetTextureOffset(m_mainTextureId, source.GetTextureOffset(sourceProperty));
+        }
+
+        private void SetCutoff(float value)
+        {
+            m_currentValue = value;
+            if (m_dissolveMaterials == null)
+                return;
+
+            for (int i = 0; i < m_dissolveMaterials.Length; i++)
+            {
+                if (m_dissolveMaterials[i] != null)
+                    m_dissolveMaterials[i].SetFloat(m_cutoffId, value);
+            }
+        }
+
+        private void RestoreOriginalMaterials()
+        {
+            if (m_materialsApplied && m_targetRenderer != null)
+                m_targetRenderer.sharedMaterials = m_originalMaterials;
+
+            m_materialsApplied = false;
+        }
+
+        private void DestroyOwnedMaterials()
+        {
+            if (m_dissolveMaterials == null)
+                return;
+
+            for (int i = 0; i < m_dissolveMaterials.Length; i++)
+            {
+                if (m_dissolveMaterials[i] != null)
+                    Destroy(m_dissolveMaterials[i]);
+            }
+
+            m_dissolveMaterials = null;
+            m_cachedTemplate = null;
+        }
+
+        private static void PlayParticles(ParticleSystem particles)
+        {
+            if (particles == null)
+                return;
+
+            StopParticles(particles);
+            particles.Play(true);
+        }
+
+        private static void StopParticles(ParticleSystem particles)
+        {
+            if (particles != null)
+                particles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
         }
     }
 }

@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: a2cd0873883f4d34ea0892349a6010a6
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 378566
+  packageName: Dissolve Shader Pack URP
+  packageVersion: 1.0
+  assetPath: Assets/TheVayuputra/DissolveShader/Material/2_DissolveFx_Ice.mat
+  uploadId: 931616

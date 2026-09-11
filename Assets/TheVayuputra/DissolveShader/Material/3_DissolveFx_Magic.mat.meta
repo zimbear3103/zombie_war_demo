@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 5e25cc7365e43204d8feb59cb59d170e
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 378566
+  packageName: Dissolve Shader Pack URP
+  packageVersion: 1.0
+  assetPath: Assets/TheVayuputra/DissolveShader/Material/3_DissolveFx_Magic.mat
+  uploadId: 931616

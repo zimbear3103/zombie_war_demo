@@ -49,7 +49,7 @@ public class ZombieSpawner : MonoBehaviour
     [SerializeField, Min(1)] private int m_spawnPointScanLimit = 8;
     [SerializeField] private int m_navMeshAreaMask = NavMesh.AllAreas;
 
-    private readonly List<ZombieController> m_liveZombies = new();
+    private readonly List<ZombieController> m_activeZombies = new();
     private ObjectPooling m_pool;
     private Transform m_target;
     private PlayerStats m_targetStats;
@@ -60,7 +60,22 @@ public class ZombieSpawner : MonoBehaviour
     private bool m_isRunning;
     private bool m_gameplayEnabled;
 
-    public int AliveCount => m_liveZombies.Count;
+    public int AliveCount
+    {
+        get
+        {
+            int count = 0;
+            for (int i = 0; i < m_activeZombies.Count; i++)
+            {
+                ZombieController zombie = m_activeZombies[i];
+                if (zombie != null && zombie.isActiveAndEnabled && zombie.Stats != null &&
+                    zombie.Stats.isActiveAndEnabled && zombie.Stats.IsAlive)
+                    count++;
+            }
+
+            return count;
+        }
+    }
     public bool IsRunning => m_isRunning;
     public event Action<ZombieController> ZombieKilled;
 
@@ -132,12 +147,12 @@ public class ZombieSpawner : MonoBehaviour
     {
         m_gameplayEnabled = value && m_isRunning;
 
-        for (int i = m_liveZombies.Count - 1; i >= 0; i--)
+        for (int i = m_activeZombies.Count - 1; i >= 0; i--)
         {
-            ZombieController zombie = m_liveZombies[i];
+            ZombieController zombie = m_activeZombies[i];
             if (zombie == null)
             {
-                m_liveZombies.RemoveAt(i);
+                m_activeZombies.RemoveAt(i);
                 continue;
             }
 
@@ -150,10 +165,10 @@ public class ZombieSpawner : MonoBehaviour
         m_isRunning = false;
         m_gameplayEnabled = false;
 
-        for (int i = m_liveZombies.Count - 1; i >= 0; i--)
-            ReleaseZombie(m_liveZombies[i], false, false);
+        for (int i = m_activeZombies.Count - 1; i >= 0; i--)
+            ReleaseZombie(m_activeZombies[i], false);
 
-        m_liveZombies.Clear();
+        m_activeZombies.Clear();
         m_target = null;
         m_targetStats = null;
         m_currentWaveIndex = 0;
@@ -287,12 +302,13 @@ public class ZombieSpawner : MonoBehaviour
         }
 
         zombie.Died += HandleZombieDied;
+        zombie.DeathCompleted += HandleZombieDeathCompleted;
         zombie.Released += HandleZombieReleased;
-        m_liveZombies.Add(zombie);
+        m_activeZombies.Add(zombie);
         instance.SetActive(true);
         if (!zombie.IsSpawnReady)
         {
-            ReleaseZombie(zombie, false, false);
+            ReleaseZombie(zombie, false);
             AbortRun($"{group.ZombiePrefab.name} could not activate on its NavMesh. Check its agent type and spawn surface.");
             return;
         }
@@ -373,30 +389,39 @@ public class ZombieSpawner : MonoBehaviour
 
     private void HandleZombieDied(ZombieController zombie)
     {
-        ReleaseZombie(zombie, true, false);
+        if (zombie == null || !m_isRunning || !m_activeZombies.Contains(zombie))
+            return;
+
+        zombie.Died -= HandleZombieDied;
+        // Keep the corpse tracked until its presentation completes or the run ends.
+        // Subscribers may end or restart the run, so do no cleanup after this callback.
+        ZombieKilled?.Invoke(zombie);
+    }
+
+    private void HandleZombieDeathCompleted(ZombieController zombie)
+    {
+        ReleaseZombie(zombie, false);
     }
 
     private void HandleZombieReleased(ZombieController zombie)
     {
-        ReleaseZombie(zombie, false, true);
+        ReleaseZombie(zombie, true);
     }
 
-    private void ReleaseZombie(ZombieController zombie, bool killed, bool alreadyInactive)
+    private void ReleaseZombie(ZombieController zombie, bool alreadyInactive)
     {
         if (zombie == null)
         {
-            m_liveZombies.Remove(zombie);
+            m_activeZombies.Remove(zombie);
             return;
         }
 
-        if (!m_liveZombies.Remove(zombie))
+        if (!m_activeZombies.Remove(zombie))
             return;
 
         zombie.Died -= HandleZombieDied;
+        zombie.DeathCompleted -= HandleZombieDeathCompleted;
         zombie.Released -= HandleZombieReleased;
-
-        if (killed)
-            ZombieKilled?.Invoke(zombie);
 
         zombie.PrepareForPool();
         if (alreadyInactive && !zombie.gameObject.activeSelf)

@@ -52,7 +52,6 @@ public abstract class ProjectileBehaviour : MonoBehaviour
         Simulate(Time.deltaTime);
     }
 
-    // A single simulation step also allows deterministic combat tests.
     public void Simulate(float deltaTime)
     {
         if (!m_isFlying || !isActiveAndEnabled || !IsPositiveFinite(deltaTime)) return;

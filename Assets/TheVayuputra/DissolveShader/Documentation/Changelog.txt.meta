@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 77d5efc24ca4003498095d74a83d5dce
+TextScriptImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 378566
+  packageName: Dissolve Shader Pack URP
+  packageVersion: 1.0
+  assetPath: Assets/TheVayuputra/DissolveShader/Documentation/Changelog.txt
+  uploadId: 931616

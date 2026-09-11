@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 012460d8f001937479528e2d09e0f5e1
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 378566
+  packageName: Dissolve Shader Pack URP
+  packageVersion: 1.0
+  assetPath: Assets/TheVayuputra/DissolveShader/Particles/DissolveParticle.prefab
+  uploadId: 931616

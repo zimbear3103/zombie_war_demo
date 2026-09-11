@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Pool;
-using UnityEngine.UIElements;
 
 public class WeaponController : MonoBehaviour
 {
@@ -12,8 +11,14 @@ public class WeaponController : MonoBehaviour
     [SerializeField] private Transform m_muzzle;
     [Tooltip("Prefab with BulletBehaviour on its root. Flight speed and lifetime are configured on that prefab.")]
     [SerializeField] private BulletBehaviour m_bulletPrefab;
-    [SerializeField] private GameObject m_muzzleFlash;
-    [SerializeField] private GameObject m_bulletTrail;
+    [SerializeField] private MuzzleEffect m_muzzleFlash;
+
+    [Header("Hand Grips")]
+    [Tooltip("Child transform defining the right hand bone's position and rotation while holding this weapon.")]
+    [SerializeField] private Transform m_rightHandGrip;
+    [Tooltip("Optional child transform for the left hand. Leave empty for a one-handed pose.")]
+    [SerializeField] private Transform m_leftHandGrip;
+
     [Header("Bullet Pool")]
     [Tooltip("Distinct bullets created when the weapon is initialized, before firing. Clamped to Max Retained Bullets.")]
     [SerializeField, Min(0)] private int m_prewarmBulletCount = 16;
@@ -50,6 +55,8 @@ public class WeaponController : MonoBehaviour
     public int MaxMagazine => m_maxMagazine;
     public int MagazineCapacity => m_magazineCapacity;
     public int AmmoInMagazine => m_ammoInMagazine;
+    public Transform RightHandGrip => m_rightHandGrip;
+    public Transform LeftHandGrip => m_leftHandGrip;
 
     public event Action Fired;
     public event Action<RaycastHit> Hit;
@@ -252,8 +259,7 @@ public class WeaponController : MonoBehaviour
             Vector3 direction = Quaternion.AngleAxis(angle, Vector3.up) * centerDirection;
             //Debug.Log($"{name} firing bullet {index + 1}/{bulletCount} at angle {angle} degrees, direction {direction}");
             var bullet = AcquireBullet();
-            Instantiate(m_muzzleFlash, m_muzzle.position, Quaternion.identity, m_muzzle);
-            Instantiate(m_bulletTrail, m_muzzle.position, Quaternion.LookRotation(direction, Vector3.up));
+            m_muzzleFlash.PlayMuzzle();
             bullet.transform.SetPositionAndRotation(m_muzzle.position, Quaternion.LookRotation(direction, Vector3.up));
             bullet.Launch(direction, m_origin.position, m_owner, m_hitMask, m_range,
                 m_damage, m_knockbackForce, m_bulletHitCallback);

@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: c73834e4b0c441e4a8de24ae36f7b02f
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 378566
+  packageName: Dissolve Shader Pack URP
+  packageVersion: 1.0
+  assetPath: Assets/TheVayuputra/DissolveShader/Particles/circle_additive.mat
+  uploadId: 931616

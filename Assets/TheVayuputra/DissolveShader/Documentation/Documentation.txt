@@ -1,0 +1,103 @@
+Dissolve Shader Pack URP
+============================
+
+Overview
+--------
+Dissolve Shader Pack URP is a Universal Render Pipeline dissolve shader package for animated object reveal and disappearance effects. It includes Shader Graph assets, material presets, demo prefabs, a demo scene, dissolve textures, and scripts for triggering the dissolve animation.
+
+Package Contents
+----------------
+- ShaderGraph/DissolveFx.shadergraph
+  Main dissolve Shader Graph.
+
+- Material
+  Sample materials for burn, ice, electric, magic, and green dissolve looks.
+
+- Texture
+  Noise and melt textures used by the dissolve material presets.
+
+- Prefab
+  Demo prefabs configured for previewing dissolve effects.
+
+- Scene/Demo.unity
+  Demo scene for previewing the included dissolve materials and controls.
+
+- Script/DissolveController.cs
+  Runtime component that animates the shader cutoff value.
+
+- Script/DissolveDemoController.cs
+  Demo controller for dissolve, reverse dissolve, looping, and material switching.
+
+Requirements
+------------
+- Unity project using the Universal Render Pipeline (URP).
+- Shader Graph and URP shader libraries available through the Unity Render Pipelines package.
+- Unity UI is used by the included demo scene for controls and material switching.
+
+Dependencies
+------------
+- Required: Universal Render Pipeline.
+- Required: Shader Graph.
+- Demo only: Unity UI.
+- No external runtime libraries are required by the shader or runtime dissolve controller.
+- Test frameworks such as NUnit or the Unity Test Framework are not required by this asset.
+
+Setup
+-----
+1. Import the package into a Unity project that uses URP.
+2. Open Scene/Demo.unity to preview the included dissolve effects.
+3. Assign one of the included dissolve materials to your mesh renderer, or create a new material from the included Shader Graph.
+4. Add DissolveController to the object that should dissolve.
+5. Assign the target Renderer field if the renderer is not on the same GameObject.
+6. Set Duration to control how long the dissolve or reverse dissolve animation takes.
+
+Runtime Usage
+-------------
+All included scripts are inside the TheVayuputra namespace.
+If you reference these scripts from custom C# code, add:
+using TheVayuputra;
+or use the fully qualified type names:
+TheVayuputra.DissolveController
+TheVayuputra.DissolveDemoController
+
+Common calls:
+
+- PlayDissolve()
+  Animates the material cutoff from visible to dissolved.
+
+- ReverseDissolve()
+  Animates the material cutoff from dissolved to visible.
+
+- SetMaterial(Material newMaterial)
+  Replaces the renderer material and resets it to the visible state.
+
+Shader Properties
+-----------------
+- Main Texture (_MainTexture)
+  Base texture for the material surface.
+
+- Base Color (_BaseColor)
+  Main material tint.
+
+- Noise Texture (_NoiseTexture)
+  Texture used to define the dissolve pattern.
+
+- Noise Scale (_NoiseScale)
+  Controls the scale of the dissolve noise pattern.
+
+- Dissolve Amount (_Cutoff)
+  Main dissolve control. The included DissolveController animates this property.
+
+- Edge Size (_Edge_Size)
+  Width of the highlighted dissolve edge.
+
+- Edge Color (_Edge_Color)
+  HDR color used for the dissolve edge glow.
+
+Notes
+-----
+- DissolveController uses renderer.material, so Unity creates a material instance at runtime for that renderer.
+- The controller expects the shader to expose _Cutoff. Materials without this property are ignored by the dissolve calls.
+- A _Cutoff value of 1 is treated as visible by the controller. A value of 0 is treated as dissolved.
+- For best results, use high-contrast noise textures and tune Edge Size and Edge Color for each material style.
+

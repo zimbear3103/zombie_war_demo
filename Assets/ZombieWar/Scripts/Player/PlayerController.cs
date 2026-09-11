@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Animations.Rigging;
 using UnityEngine.InputSystem;
 
 [DisallowMultipleComponent]
@@ -17,7 +18,15 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private Transform m_obstructionOrigin;
     [SerializeField] private LayerMask m_hitMask = Physics.DefaultRaycastLayers;
 
+    [Header("Bomb")]
+    [Tooltip("Optional hand socket. Falls back to one world unit above the player.")]
+    [SerializeField] private Transform m_bombThrowOrigin;
+    [SerializeField, Min(1)] private int m_maxBombCount = 3;
+        
     private readonly List<WeaponController> m_ownedWeapons = new List<WeaponController>(3);
+    private readonly List<BombController> m_bombs = new List<BombController>(3);
+    private InputAction m_bombAction;
+    private int m_lastBombThrowFrame = -1;
     private PlayerStats m_stats;
     private WeaponController m_activeWeapon;
     private Vector2 m_moveInput;
@@ -27,10 +36,10 @@ public class PlayerController : MonoBehaviour
     private bool m_hasFocus = true;
     private bool m_applicationPaused;
     private bool m_reportedLoadoutError;
-    private bool isCharging;
 
     public PlayerStats Stats => m_stats != null ? m_stats : (m_stats = GetComponent<PlayerStats>());
     public WeaponController ActiveWeapon => m_activeWeapon;
+    public int BombCount => m_bombs.Count;
     public bool CanAct => m_gameplayEnabled && m_hasFocus && !m_applicationPaused && isActiveAndEnabled &&
                           Stats != null && Stats.isActiveAndEnabled && Stats.IsAlive;
     public float NormalizedMoveSpeed { get; private set; }
@@ -53,12 +62,18 @@ public class PlayerController : MonoBehaviour
     private void OnEnable()
     {
         if (Stats != null) Stats.Died += OnDied;
+        PlayerInput playerInput = GetComponent<PlayerInput>();
+        m_bombAction = playerInput != null && playerInput.actions != null
+            ? playerInput.actions.FindAction("Player/Bomb", false) : null;
+        if (m_bombAction != null) m_bombAction.performed += OnBombPerformed;
         ClearInput();
     }
 
     private void OnDisable()
     {
         if (m_stats != null) m_stats.Died -= OnDied;
+        if (m_bombAction != null) m_bombAction.performed -= OnBombPerformed;
+        m_bombAction = null;
         SetGameplayEnabled(false);
     }
 
@@ -150,6 +165,8 @@ public class PlayerController : MonoBehaviour
         if (m_facingRoot != null) m_facingRoot.rotation = Quaternion.LookRotation(m_lastFacing, Vector3.up);
         Stats.RestoreFullHealth();
         ClearLoadout();
+        m_bombs.Clear();
+        m_lastBombThrowFrame = -1;
         RunReset?.Invoke();
         m_reportedLoadoutError = false;
         if (m_startingWeapon != null) AddOrEquipWeapon(m_startingWeapon);
@@ -163,7 +180,9 @@ public class PlayerController : MonoBehaviour
 
     public bool TryCollectBomb(BombController data)
     {
-        return CanAct && data != null;
+        if (!CanAct || data == null || m_bombs.Count >= Mathf.Max(1, m_maxBombCount)) return false;
+        m_bombs.Add(data);
+        return true;
     }
 
     private bool AddOrEquipWeapon(WeaponScriptableObject data)
@@ -294,13 +313,28 @@ public class PlayerController : MonoBehaviour
 
     public void OnThrowBomb()
     {
-               if (!CanAct) return;
-        // Implement bomb throwing logic here
+        if (!CanAct || Time.timeScale <= 0f || m_lastBombThrowFrame == Time.frameCount) return;
+        StartThrowBomb();
     }
 
     private void StartThrowBomb()
     {
-        if (!CanAct) return;
+        while (m_bombs.Count > 0 && m_bombs[0] == null) m_bombs.RemoveAt(0);
+        if (m_bombs.Count == 0) return;
 
+        Vector3 direction = Facing(Vector2.zero, m_aimInput, m_lastFacing, m_aimDeadZone);
+        Vector3 origin = m_bombThrowOrigin != null
+            ? m_bombThrowOrigin.position : transform.position + Vector3.up;
+        BombController bomb = Instantiate(m_bombs[0], origin, Quaternion.LookRotation(direction));
+        if (!bomb.Throw(this, origin, direction))
+        {
+            Destroy(bomb.gameObject);
+            return;
+        }
+
+        m_bombs.RemoveAt(0);
+        m_lastBombThrowFrame = Time.frameCount;
     }
+
+    private void OnBombPerformed(InputAction.CallbackContext context) => OnThrowBomb();
 }

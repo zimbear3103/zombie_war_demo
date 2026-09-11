@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 197e46a687d4e994dbe429493c5c2556
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 378566
+  packageName: Dissolve Shader Pack URP
+  packageVersion: 1.0
+  assetPath: Assets/TheVayuputra/DissolveShader/Material/3_DissolveFx_Electric.mat
+  uploadId: 931616

@@ -1,4 +1,6 @@
 using System;
+using System.Collections;
+using TheVayuputra;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -22,11 +24,19 @@ public class ZombieController : MonoBehaviour
     [SerializeField, Min(0.0001f)] private float m_animationReferenceScale = 0.1f;
     [SerializeField, Min(0f)] private float m_animationDampTime = 0.1f;
 
+    [Header("Death and Hit Effects")]
+    [SerializeField] private HitFlashEffect m_hitFlashEffect;
+    [SerializeField] private DissolveEffect m_dissolveEffect;
+    [Tooltip("Maximum scaled seconds to wait for the dying state before continuing to dissolve.")]
+    [SerializeField, Min(0.1f)] private float m_deathAnimationTimeout = 5f;
+
     private static readonly int m_moveHash = Animator.StringToHash("move");
     private static readonly int m_locomotionHash = Animator.StringToHash("locomotion");
     private static readonly int m_playbackSpeedHash = Animator.StringToHash("movementPlaybackSpeed");
     private static readonly int m_attackHash = Animator.StringToHash("Attack");
     private static readonly int m_attackStateHash = Animator.StringToHash("attack");
+    private static readonly int m_dyingStateHash = Animator.StringToHash("Base Layer.dying");
+    private static readonly int m_deathHash = Animator.StringToHash("death");
 
     private Transform m_target;
     private PlayerStats m_targetStats;
@@ -38,12 +48,25 @@ public class ZombieController : MonoBehaviour
     private bool m_gameplayEnabled;
     private bool m_isSpawned;
     private bool m_componentsCached;
+    private bool m_isDying;
+    private bool m_collidersDisabledForDeath;
+    private bool m_agentDisabledForDeath;
+    private bool m_deathAnimatorOverridesApplied;
+    private int m_spawnVersion;
+    private Coroutine m_deathRoutine;
+    private Collider[] m_colliders;
+    private bool[] m_colliderEnabledStates;
+    private float m_savedAnimatorSpeed;
+    private AnimatorCullingMode m_savedAnimatorCullingMode;
     private float m_animationScaleMultiplier = 1f;
     private readonly RaycastHit[] m_coverHits = new RaycastHit[16];
     public ZombieStats Stats => m_stats;
     public bool IsSpawnReady => m_isSpawned && isActiveAndEnabled && m_stats != null &&
                                 m_stats.isActiveAndEnabled && CanUseAgent();
+
+    // Died records the kill; DeathCompleted allows the spawner to return the corpse to its pool.
     public event Action<ZombieController> Died;
+    public event Action<ZombieController> DeathCompleted;
     public event Action<ZombieController> Released;
 
     private void Awake()
@@ -64,6 +87,9 @@ public class ZombieController : MonoBehaviour
 
     private void Update()
     {
+        if (m_isDying)
+            return;
+
         UpdateMovement();
         SynchronizeAnimation();
     }
@@ -112,12 +138,11 @@ public class ZombieController : MonoBehaviour
 
     private void OnDisable()
     {
-        if (!m_isSpawned)
-            return;
-
+        bool wasSpawned = m_isSpawned;
         m_isSpawned = false;
         ClearRuntimeState();
-        Released?.Invoke(this);
+        if (wasSpawned)
+            Released?.Invoke(this);
     }
 
     private void OnDestroy()
@@ -132,6 +157,7 @@ public class ZombieController : MonoBehaviour
     public bool PrepareForSpawn(Transform target, PlayerStats targetStats, bool gameplayEnabled)
     {
         CacheComponents();
+        ResetDeathSequence();
 
         if (!gameObject.activeSelf && !enabled) enabled = true;
         if (!enabled || m_agent == null || !m_agent.enabled || m_stats == null || !m_stats.enabled ||
@@ -144,6 +170,7 @@ public class ZombieController : MonoBehaviour
         m_repathTimer = 0f;
         m_attackCooldownRemaining = 0f;
         m_knockbackVelocity = Vector3.zero;
+        m_spawnVersion++;
         m_isSpawned = true;
         m_gameplayEnabled = gameplayEnabled;
 
@@ -158,7 +185,7 @@ public class ZombieController : MonoBehaviour
 
     private void SynchronizeAnimation()
     {
-        if (!CanUseAnimator())
+        if (m_isDying || !CanUseAnimator())
             return;
 
         // Pool parents can change the world scale without changing the prefab.
@@ -229,6 +256,8 @@ public class ZombieController : MonoBehaviour
         m_animator.SetFloat(m_locomotionHash, 0f);
         m_animator.SetFloat(m_playbackSpeedHash, 1f);
         m_animator.ResetTrigger(m_attackHash);
+        if (m_animator.HasState(0, m_dyingStateHash))
+            m_animator.ResetTrigger(m_deathHash);
         m_animator.Update(0f);
     }
 
@@ -257,7 +286,14 @@ public class ZombieController : MonoBehaviour
         m_agent = GetComponent<NavMeshAgent>();
         m_stats = GetComponent<ZombieStats>();
         if (m_animator == null)
-            m_animator = GetComponentInChildren<Animator>();
+            m_animator = GetComponentInChildren<Animator>(true);
+        if (m_hitFlashEffect == null)
+            m_hitFlashEffect = GetComponentInChildren<HitFlashEffect>(true);
+        if (m_dissolveEffect == null)
+            m_dissolveEffect = GetComponentInChildren<DissolveEffect>(true);
+
+        m_colliders = GetComponentsInChildren<Collider>(true);
+        m_colliderEnabledStates = new bool[m_colliders.Length];
 
         if (m_animator != null)
             m_animator.applyRootMotion = false;
@@ -369,18 +405,186 @@ public class ZombieController : MonoBehaviour
 
     private void HandleStatsDied()
     {
-        if (!m_isSpawned)
+        if (!m_isSpawned || m_isDying)
             return;
 
+        m_isDying = true;
         m_gameplayEnabled = false;
+        m_knockbackVelocity = Vector3.zero;
         m_stats.SetDamageEnabled(false);
         SetAgentStopped(true);
-        SynchronizeAnimation();
+        ResetAgentPath();
+        DisableDeathColliders();
+
+        // A corpse must not keep participating in crowd avoidance.
+        if (m_agent != null && m_agent.enabled)
+        {
+            m_agentDisabledForDeath = true;
+            m_agent.enabled = false;
+        }
+
+        int spawnVersion = m_spawnVersion;
         Died?.Invoke(this);
+
+        // A kill listener can end/restart the run and even reuse this instance immediately.
+        if (IsCurrentDeath(spawnVersion))
+            m_deathRoutine = StartCoroutine(PlayDeathSequence(spawnVersion));
+    }
+
+    private IEnumerator PlayDeathSequence(int spawnVersion)
+    {
+        bool animationStarted = BeginDeathAnimation();
+
+        // Ensure the coroutine handle is assigned even when animation/effects are missing.
+        yield return null;
+
+        if (animationStarted)
+            yield return WaitForDeathAnimation(spawnVersion);
+
+        if (!IsCurrentDeath(spawnVersion))
+            yield break;
+
+        if (m_hitFlashEffect != null)
+            m_hitFlashEffect.ResetEffect();
+
+        if (m_dissolveEffect != null && m_dissolveEffect.TryPlayDissolve())
+        {
+            while (IsCurrentDeath(spawnVersion) && m_dissolveEffect != null && m_dissolveEffect.IsPlaying)
+                yield return null;
+        }
+
+        if (!IsCurrentDeath(spawnVersion))
+            yield break;
+
+        m_deathRoutine = null;
+        DeathCompleted?.Invoke(this);
+    }
+
+    private bool BeginDeathAnimation()
+    {
+        if (!CanUseAnimator() || !m_animator.HasState(0, m_dyingStateHash))
+            return false;
+
+        m_savedAnimatorSpeed = m_animator.speed;
+        m_savedAnimatorCullingMode = m_animator.cullingMode;
+        m_deathAnimatorOverridesApplied = true;
+        m_animator.speed = GetPositiveValue(m_savedAnimatorSpeed, 1f);
+        m_animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+        m_animator.ResetTrigger(m_attackHash);
+        m_animator.ResetTrigger(m_deathHash);
+        m_animator.SetBool(m_moveHash, false);
+        m_animator.SetFloat(m_locomotionHash, 0f);
+        m_animator.SetFloat(m_playbackSpeedHash, 1f);
+
+        // Enter dying from any state without depending on authored trigger transitions.
+        m_animator.Play(m_dyingStateHash, 0, 0f);
+        m_animator.Update(0f);
+        return true;
+    }
+
+    private IEnumerator WaitForDeathAnimation(int spawnVersion)
+    {
+        float remainingTime = GetPositiveValue(m_deathAnimationTimeout, 5f);
+        bool enteredDying = false;
+
+        while (IsCurrentDeath(spawnVersion) && CanUseAnimator() && remainingTime > 0f)
+        {
+            AnimatorStateInfo state = m_animator.GetCurrentAnimatorStateInfo(0);
+            if (state.fullPathHash == m_dyingStateHash)
+            {
+                enteredDying = true;
+
+                // The current controller exits dying before normalizedTime reaches one.
+                if (state.normalizedTime >= 1f || m_animator.IsInTransition(0))
+                    break;
+            }
+            else if (enteredDying)
+            {
+                break;
+            }
+
+            remainingTime -= Time.deltaTime;
+            yield return null;
+        }
+
+        // Hold the observed death pose during dissolve; reset restores the original speed.
+        if (IsCurrentDeath(spawnVersion) && CanUseAnimator())
+            m_animator.speed = 0f;
+    }
+
+    private bool IsCurrentDeath(int spawnVersion)
+    {
+        return m_isSpawned && m_isDying && isActiveAndEnabled && m_spawnVersion == spawnVersion;
+    }
+
+    private void DisableDeathColliders()
+    {
+        for (int i = 0; i < m_colliders.Length; i++)
+        {
+            Collider hitCollider = m_colliders[i];
+            if (hitCollider == null)
+                continue;
+
+            m_colliderEnabledStates[i] = hitCollider.enabled;
+            hitCollider.enabled = false;
+        }
+
+        m_collidersDisabledForDeath = true;
+    }
+
+    private void ResetDeathSequence()
+    {
+        if (m_deathRoutine != null)
+        {
+            StopCoroutine(m_deathRoutine);
+            m_deathRoutine = null;
+        }
+
+        m_isDying = false;
+
+        // Restore a pending flash before restoring the dissolve material.
+        if (m_hitFlashEffect != null)
+            m_hitFlashEffect.ResetEffect();
+        if (m_dissolveEffect != null)
+            m_dissolveEffect.ResetEffect();
+
+        if (m_collidersDisabledForDeath)
+        {
+            for (int i = 0; i < m_colliders.Length; i++)
+            {
+                if (m_colliders[i] != null)
+                    m_colliders[i].enabled = m_colliderEnabledStates[i];
+            }
+
+            m_collidersDisabledForDeath = false;
+        }
+
+        if (m_agentDisabledForDeath)
+        {
+            if (m_agent != null)
+                m_agent.enabled = true;
+            m_agentDisabledForDeath = false;
+        }
+
+        if (m_deathAnimatorOverridesApplied)
+        {
+            if (m_animator != null)
+            {
+                m_animator.speed = m_savedAnimatorSpeed;
+                m_animator.cullingMode = m_savedAnimatorCullingMode;
+            }
+
+            m_deathAnimatorOverridesApplied = false;
+        }
     }
 
     private void HandleDamaged(DamageInfo damageInfo)
     {
+        if (!m_isSpawned || m_isDying)
+            return;
+
+        if (m_hitFlashEffect != null)
+            m_hitFlashEffect.PlayOnDamageVFX();
         ApplyKnockback(damageInfo.hitDirection, damageInfo.knockbackForce);
     }
 
@@ -398,6 +602,7 @@ public class ZombieController : MonoBehaviour
 
     private void ClearRuntimeState()
     {
+        ResetDeathSequence();
         m_gameplayEnabled = false;
         m_target = null;
         m_targetStats = null;
