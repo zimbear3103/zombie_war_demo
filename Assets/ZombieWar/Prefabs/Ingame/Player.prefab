@@ -50,6 +50,7 @@ GameObject:
   - component: {fileID: 3204910199087151153}
   - component: {fileID: 903050170418081876}
   - component: {fileID: 6365108937436913275}
+  - component: {fileID: 8363716104434002350}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -319,6 +320,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: ZombieWar.PlayerCore::PlayerCollector
   m_player: {fileID: 8258627722015222540}
+--- !u!114 &8363716104434002350
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2323376970735953953}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c91903474b1f4582826c278b3af4f8c3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WeaponAudioController
+  m_player: {fileID: 8258627722015222540}
 --- !u!1 &3243655571497366760
 GameObject:
   m_ObjectHideFlags: 0
@@ -467,7 +481,6 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 5076597259569197695}
   - {fileID: 82261834905739998}
   - {fileID: 2413555519097689457}
   m_Father: {fileID: 7965364612159902113}
@@ -4887,65 +4900,3 @@ MonoBehaviour:
     m_HintWeight: 1
     m_MaintainTargetPositionOffset: 0
     m_MaintainTargetRotationOffset: 0
---- !u!1001 &8909627724380317543
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 3922730576204198536}
-    m_Modifications:
-    - target: {fileID: 2725128651682927175, guid: c69451097c8c0974499b0c73ad9e70ea, type: 3}
-      propertyPath: m_Name
-      value: Pistol
-      objectReference: {fileID: 0}
-    - target: {fileID: 4456005592816735512, guid: c69451097c8c0974499b0c73ad9e70ea, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4456005592816735512, guid: c69451097c8c0974499b0c73ad9e70ea, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4456005592816735512, guid: c69451097c8c0974499b0c73ad9e70ea, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4456005592816735512, guid: c69451097c8c0974499b0c73ad9e70ea, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 4456005592816735512, guid: c69451097c8c0974499b0c73ad9e70ea, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4456005592816735512, guid: c69451097c8c0974499b0c73ad9e70ea, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4456005592816735512, guid: c69451097c8c0974499b0c73ad9e70ea, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4456005592816735512, guid: c69451097c8c0974499b0c73ad9e70ea, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4456005592816735512, guid: c69451097c8c0974499b0c73ad9e70ea, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4456005592816735512, guid: c69451097c8c0974499b0c73ad9e70ea, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: c69451097c8c0974499b0c73ad9e70ea, type: 3}
---- !u!4 &5076597259569197695 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 4456005592816735512, guid: c69451097c8c0974499b0c73ad9e70ea, type: 3}
-  m_PrefabInstance: {fileID: 8909627724380317543}
-  m_PrefabAsset: {fileID: 0}

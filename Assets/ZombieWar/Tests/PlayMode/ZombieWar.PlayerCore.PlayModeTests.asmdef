@@ -1,0 +1,10 @@
+{
+  "name": "ZombieWar.PlayerCore.PlayModeTests",
+  "references": [
+    "ZombieWar.PlayerCore"
+  ],
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ],
+  "autoReferenced": false
+}

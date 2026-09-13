@@ -73,10 +73,12 @@ public class WeaponAudioController : MonoBehaviour
 
     private void OnFired()
     {
+        Debug.Log("Before PLay Sound");
         if (m_weapon == null || m_weapon.Data == null) return;
         SoundManager manager = SoundManager.Instance;
         if (manager != null)
         {
+            Debug.Log("Play Sound");
             // Fired is raised once per shot, including shotgun shots with multiple pellets.
             manager.PlayGameplaySound(m_weapon.Data.FireSound, m_weapon.transform.position, 24);
         }

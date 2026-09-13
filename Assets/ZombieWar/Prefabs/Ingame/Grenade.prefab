@@ -184,11 +184,12 @@ MonoBehaviour:
   m_explosionDelay: 1
   m_explosionEffectPrefab: {fileID: 100006, guid: 808e73d863fcde3499fd5301563ffd3d, type: 3}
   m_explosionSound:
-    m_clips: []
+    m_clips:
+    - {fileID: 8300000, guid: e4d6bec77ad42224ab127fffe3e04215, type: 3}
     m_volume: 0.8
     m_pitchRange: {x: 0.95, y: 1.05}
-    m_minDistance: 5
-    m_maxDistance: 40
+    m_minDistance: 110
+    m_maxDistance: 160
 --- !u!114 &3696632976094392373
 MonoBehaviour:
   m_ObjectHideFlags: 0

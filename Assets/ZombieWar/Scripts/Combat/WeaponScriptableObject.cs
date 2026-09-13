@@ -15,8 +15,9 @@ public class WeaponScriptableObject : ScriptableObject
     [SerializeField] private WeaponKind m_kind;
     [FormerlySerializedAs("m_fireRate")]
     [SerializeField] private float m_fireInterval = 0.5f;
-    [Tooltip("Rounds per magazine. A shotgun consumes one round per shot, regardless of pellet count.")]
+    [Tooltip("Starting magazine equivalents, including the loaded magazine. Total starting ammo is this value multiplied by Magazine Capacity.")]
     [SerializeField, Min(1)] private int m_magazineMaximum = 3;
+    [Tooltip("Rounds per magazine. A shotgun consumes one round per shot, regardless of pellet count.")]
     [SerializeField, Min(1)] private int m_magazineCapacity = 12;
     [SerializeField, Min(0f)] private float m_reloadTime = 2f;
     [SerializeField] private float m_damage = 10f;
@@ -58,6 +59,7 @@ public class WeaponScriptableObject : ScriptableObject
     private void OnValidate()
     {
         m_fireInterval = ClampFinite(m_fireInterval, 0.01f, float.MaxValue, 0.5f);
+        m_magazineMaximum = Mathf.Max(1, m_magazineMaximum);
         m_magazineCapacity = Mathf.Max(1, m_magazineCapacity);
         m_reloadTime = ClampFinite(m_reloadTime, 0f, float.MaxValue, 2f);
         m_damage = ClampFinite(m_damage, 0f, float.MaxValue, 10f);

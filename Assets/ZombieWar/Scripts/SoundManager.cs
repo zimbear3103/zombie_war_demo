@@ -68,9 +68,9 @@ public class SoundManager : Singleton<SoundManager>
         if (profile == null)
             yield break;
 
-        SetMuteSFX(!profile.OnSFX);
-        SetMuteVoice(!profile.OnSFX);
-        SetMuteMusic(!profile.OnMusic);
+        SetMuteSFX(false);
+        SetMuteVoice(false);
+        SetMuteMusic(false);
     }
 
     private void LateUpdate()

@@ -30,7 +30,7 @@ public class WeaponController : MonoBehaviour
     private int m_hitMask;
     private float m_fireInterval;
     private int m_maxMagazine;
-    private int m_numberMagazine;
+    private int m_reserveAmmo;
     private int m_magazineCapacity;
     private int m_ammoInMagazine;
     private float m_reloadTime;
@@ -56,6 +56,8 @@ public class WeaponController : MonoBehaviour
     public int MaxMagazine => m_maxMagazine;
     public int MagazineCapacity => m_magazineCapacity;
     public int AmmoInMagazine => m_ammoInMagazine;
+    public int ReserveAmmo => m_reserveAmmo;
+    public int TotalAmmo => m_ammoInMagazine + m_reserveAmmo;
     public bool IsReloading => m_isReloading;
     public float ReloadDuration => m_reloadTime;
     public Transform RightHandGrip => m_rightHandGrip;
@@ -89,8 +91,7 @@ public class WeaponController : MonoBehaviour
         {
             EnsureBulletPool();
             m_ammoInMagazine = m_magazineCapacity;
-            m_maxMagazine = m_weaponData.MagazineMaximum;
-            m_numberMagazine = m_weaponData.MagazineMaximum;
+            m_reserveAmmo = (m_maxMagazine - 1) * m_magazineCapacity;
             m_reportedInvalidConfiguration = false;
         }
     }
@@ -137,7 +138,7 @@ public class WeaponController : MonoBehaviour
             TryReload();
             return false;
         }
-        Debug.Log($"{name} firing at {flatDirection} with {m_ammoInMagazine}/{m_magazineCapacity} rounds remaining. {m_numberMagazine} megazine remaining");
+        Debug.Log($"{name} firing at {flatDirection} with {m_ammoInMagazine}/{m_magazineCapacity} rounds loaded and {m_reserveAmmo} rounds in reserve.");
         FireBullets(flatDirection);
         Fired?.Invoke();
         return true;
@@ -164,9 +165,9 @@ public class WeaponController : MonoBehaviour
             Debug.Log($"{name} cannot reload because the magazine is already full.");
             return false;
         }
-        if (m_numberMagazine <= 0)
+        if (m_reserveAmmo <= 0)
         {
-            Debug.Log($"{name} cannot reload because there are no magazines remaining.");
+            Debug.Log($"{name} cannot reload because there is no reserve ammo remaining.");
             return false;
         }
         if (m_isReloading)
@@ -175,7 +176,7 @@ public class WeaponController : MonoBehaviour
             return false;
         }
         
-        Debug.Log($"{name} starting reload with {m_numberMagazine} magazines remaining.");
+        Debug.Log($"{name} starting reload with {m_reserveAmmo} rounds in reserve.");
         m_reloadCoroutine = StartCoroutine(Reload());
         SetReloading(true);
         return true;
@@ -201,8 +202,10 @@ public class WeaponController : MonoBehaviour
             if (remainingTime <= 0f) break;
         }
 
-        m_numberMagazine = Mathf.Max(0, m_numberMagazine - 1);
-        m_ammoInMagazine = m_magazineCapacity;
+        // Transfer only the missing rounds; reloading never discards loaded ammo.
+        int ammoToLoad = Mathf.Min(m_magazineCapacity - m_ammoInMagazine, m_reserveAmmo);
+        m_ammoInMagazine += ammoToLoad;
+        m_reserveAmmo -= ammoToLoad;
         Debug.Log($"{name} reloading to {m_ammoInMagazine}/{m_magazineCapacity} rounds.");
         m_reloadCoroutine = null;
         SetReloading(false);
@@ -239,8 +242,8 @@ public class WeaponController : MonoBehaviour
     {
         CancelReload();
         m_nextShotTime = float.NegativeInfinity;
-        m_numberMagazine = m_maxMagazine;
         m_ammoInMagazine = m_magazineCapacity;
+        m_reserveAmmo = (m_maxMagazine - 1) * m_magazineCapacity;
         RecycleBullets();
     }
 
@@ -264,6 +267,7 @@ public class WeaponController : MonoBehaviour
         }
 
         float fireInterval = m_weaponData.FireInterval;
+        int magazineMaximum = m_weaponData.MagazineMaximum;
         int magazineCapacity = m_weaponData.MagazineCapacity;
         float reloadTime = m_weaponData.ReloadTime;
         float damage = m_weaponData.Damage;
@@ -273,7 +277,8 @@ public class WeaponController : MonoBehaviour
         float knockbackForce = m_weaponData.KnockbackForce;
 
         if (!IsFinite(fireInterval) || fireInterval <= 0f ||
-            magazineCapacity < 1 ||
+            magazineMaximum < 1 || magazineCapacity < 1 ||
+            (long)magazineMaximum * magazineCapacity > int.MaxValue ||
             !IsFinite(reloadTime) || reloadTime < 0f ||
             !IsFinite(damage) || damage < 0f ||
             !IsFinite(range) || range <= 0f ||
@@ -281,11 +286,12 @@ public class WeaponController : MonoBehaviour
             !IsFinite(spreadAngle) || spreadAngle < 0f || spreadAngle > 360f ||
             !IsFinite(knockbackForce) || knockbackForce < 0f)
         {
-            ReportInvalidConfiguration("Weapon data contains an invalid fire interval, magazine capacity, reload time, damage, range, pellet count, spread or knockback value.");
+            ReportInvalidConfiguration("Weapon data contains an invalid fire interval, starting ammo, magazine capacity, reload time, damage, range, pellet count, spread or knockback value.");
             return false;
         }
 
         m_fireInterval = fireInterval;
+        m_maxMagazine = magazineMaximum;
         m_magazineCapacity = magazineCapacity;
         m_reloadTime = reloadTime;
         m_damage = damage;

@@ -108,8 +108,8 @@ TrailRenderer:
       serializedVersion: 2
       m_Curve:
       - serializedVersion: 3
-        time: 0
-        value: 0.42146954
+        time: 0.008232117
+        value: 1
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -186,8 +186,8 @@ MonoBehaviour:
     serializedVersion: 2
     m_Curve:
     - serializedVersion: 3
-      time: -0.0017870069
-      value: 0.2
+      time: 0
+      value: 1.5
       inSlope: 0
       outSlope: 0
       tangentMode: 136
@@ -195,8 +195,8 @@ MonoBehaviour:
       inWeight: 0.33333334
       outWeight: 0.33333334
     - serializedVersion: 3
-      time: 0.98333335
-      value: -0.031398624
+      time: 1
+      value: 0
       inSlope: 0
       outSlope: 0
       tangentMode: 136
