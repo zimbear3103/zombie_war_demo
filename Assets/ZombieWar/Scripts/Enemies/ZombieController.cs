@@ -13,7 +13,8 @@ public class ZombieController : MonoBehaviour
 
     [SerializeField] private Animator m_animator;
     [Tooltip("X: Moving blend (0-1). Y: measured world speed at playback multiplier 1. Recalibrate after changing model scale or clips. Keep speeds positive and increasing.")]
-    [SerializeField] private AnimationCurve m_movementSpeedByBlend = new AnimationCurve(
+    [SerializeField]
+    private AnimationCurve m_movementSpeedByBlend = new AnimationCurve(
         new Keyframe(0f, 0.07218f, 0.1138f, 0.1138f),
         new Keyframe(0.25f, 0.10063f, 0.1138f, 0.21368f),
         new Keyframe(0.5f, 0.15405f, 0.21368f, 0.46516f),
@@ -43,6 +44,7 @@ public class ZombieController : MonoBehaviour
     private ZombieStats m_stats;
     private float m_repathTimer;
     private float m_attackCooldownRemaining;
+    private bool m_attackHitPending;
     private Vector3 m_knockbackVelocity;
     private bool m_gameplayEnabled;
     private bool m_isSpawned;
@@ -101,6 +103,7 @@ public class ZombieController : MonoBehaviour
     {
         if (!CanPursueTarget())
         {
+            m_attackHitPending = false;
             SetAgentStopped(true);
             return;
         }
@@ -111,6 +114,7 @@ public class ZombieController : MonoBehaviour
 
         if (m_knockbackVelocity.sqrMagnitude > 0.0001f)
         {
+            m_attackHitPending = false;
             SetAgentStopped(true);
             m_agent.Move(m_knockbackVelocity * deltaTime);
             m_knockbackVelocity = Vector3.MoveTowards(m_knockbackVelocity, Vector3.zero,
@@ -124,10 +128,11 @@ public class ZombieController : MonoBehaviour
         if (direction.sqrMagnitude <= m_stats.AttackRange * m_stats.AttackRange && !IsMeleeBlocked())
         {
             SetAgentStopped(true);
-            TryAttack(direction);
+            TryAttack();
             return;
         }
 
+        m_attackHitPending = false;
         SetAgentStopped(false);
         if (CanUseAnimator())
             m_animator.ResetTrigger(m_attackHash);
@@ -252,6 +257,7 @@ public class ZombieController : MonoBehaviour
 
     private void ResetAnimation()
     {
+        m_attackHitPending = false;
         if (!CanUseAnimator())
             return;
 
@@ -268,6 +274,8 @@ public class ZombieController : MonoBehaviour
     public void SetGameplayEnabled(bool value)
     {
         m_gameplayEnabled = value && m_isSpawned && m_stats != null && m_stats.IsAlive;
+        if (!m_gameplayEnabled)
+            m_attackHitPending = false;
 
         if (m_stats != null)
             m_stats.SetDamageEnabled(m_gameplayEnabled);
@@ -339,31 +347,50 @@ public class ZombieController : MonoBehaviour
             && m_targetStats.IsAlive;
     }
 
-    private void TryAttack(Vector3 direction)
+    private void TryAttack()
     {
-        if (m_attackCooldownRemaining > 0f)
+        if (m_attackCooldownRemaining > 0f || !CanUseAnimator() || IsPlayingAttackAnimation())
+            return;
+
+        m_attackHitPending = true;
+        m_attackCooldownRemaining = m_stats.AttackInterval;
+        m_animator.SetTrigger(m_attackHash);
+        AttackPerformed?.Invoke(this);
+    }
+
+    // Called by the attack clip at the contact frame on the Animator's GameObject.
+    public void OnAttackHit()
+    {
+        if (!m_attackHitPending)
+            return;
+
+        // A miss also consumes this swing; repeated events must not retry the hit.
+        m_attackHitPending = false;
+        if (!CanPursueTarget() || !CanUseAnimator() || !IsPlayingAttackAnimation() ||
+            m_knockbackVelocity.sqrMagnitude > 0.0001f)
+            return;
+
+        Vector3 direction = m_target.position - transform.position;
+        direction.y = 0f;
+        if (direction.sqrMagnitude > m_stats.AttackRange * m_stats.AttackRange || IsMeleeBlocked())
             return;
 
         Vector3 hitDirection = direction.sqrMagnitude > 0.0001f
             ? direction.normalized
             : transform.forward;
-
-        if (CanUseAnimator() && m_animator.GetCurrentAnimatorStateInfo(0).shortNameHash != m_attackStateHash &&
-            (!m_animator.IsInTransition(0) || m_animator.GetNextAnimatorStateInfo(0).shortNameHash != m_attackStateHash))
-            m_animator.SetTrigger(m_attackHash);
-
-        int spawnVersion = m_spawnVersion;
-        m_attackCooldownRemaining = m_stats.AttackInterval;
-        AttackPerformed?.Invoke(this);
-        if (m_spawnVersion != spawnVersion || !CanPursueTarget())
-            return;
-
         m_targetStats.TakeDamage(new DamageInfo(
             m_stats.Damage,
             m_target.position,
             hitDirection,
             0f,
             gameObject));
+    }
+
+    private bool IsPlayingAttackAnimation()
+    {
+        return m_animator.GetCurrentAnimatorStateInfo(0).shortNameHash == m_attackStateHash ||
+               (m_animator.IsInTransition(0) &&
+                m_animator.GetNextAnimatorStateInfo(0).shortNameHash == m_attackStateHash);
     }
 
     private bool IsMeleeBlocked()
@@ -418,6 +445,7 @@ public class ZombieController : MonoBehaviour
             return;
 
         m_isDying = true;
+        m_attackHitPending = false;
         m_gameplayEnabled = false;
         m_knockbackVelocity = Vector3.zero;
         m_stats.SetDamageEnabled(false);
@@ -610,6 +638,7 @@ public class ZombieController : MonoBehaviour
 
         direction.y = 0f;
         if (direction.sqrMagnitude <= 0.0001f) return;
+        m_attackHitPending = false;
         // A hit refreshes velocity; pellets from one shot do not multiply the impulse.
         m_knockbackVelocity = direction.normalized * force;
     }

@@ -5,10 +5,6 @@ using UnityEngine.UI;
 public class UIHome : UIScreen
 {
     [Header("Top UI")]
-    [SerializeField] private TextMeshProUGUI m_levelText;
-    [SerializeField] private TextMeshProUGUI m_coinsText;
-    [SerializeField] private TextMeshProUGUI m_starText;
-    [SerializeField] private TextMeshProUGUI m_favoriteText;
     [SerializeField] private Button m_settingButton;
     [SerializeField] private Button m_playButton;
     [SerializeField] private TextMeshProUGUI m_statusText;
@@ -37,6 +33,7 @@ public class UIHome : UIScreen
         if (SoundManager.Instance != null)
             SoundManager.Instance.OnPlayMusic(ESoundId.Bg_MainMenu, isLoop: true, 1f);
     }
+
     private void OnStartGame()
     {
         MainStateManager stateManager = MainStateManager.Instance;

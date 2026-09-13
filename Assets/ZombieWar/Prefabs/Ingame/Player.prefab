@@ -46,14 +46,13 @@ GameObject:
   - component: {fileID: 8258627722015222540}
   - component: {fileID: 8872593710572026111}
   - component: {fileID: 709406848675879747}
-  - component: {fileID: 7464006065426316177}
   - component: {fileID: 3204910199087151153}
   - component: {fileID: 903050170418081876}
   - component: {fileID: 6365108937436913275}
   - component: {fileID: 8363716104434002350}
   m_Layer: 0
   m_Name: Player
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -257,21 +256,12 @@ MonoBehaviour:
   m_characterData: {fileID: 11400000, guid: 7a38396fa6d66044fb4c9a129e7a7482, type: 2}
   m_maxHealth: 100
   m_moveSpeed: 5
---- !u!114 &7464006065426316177
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2323376970735953953}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 846b5b465e714b09a02aad2a83741d17, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: ZombieWar.PlayerCore::HitFlashEffect
-  m_targetRenderer: {fileID: 7965364612665374313}
-  m_onDamageVFXMaterial: {fileID: 2100000, guid: ad92398b67334fc4d94dfc7f52f38cfe, type: 2}
-  m_onDamageVFXDuration: 0.08
+  m_hitFlashEffects:
+  - {fileID: 3558065518815070786}
+  - {fileID: 7424665888686082431}
+  - {fileID: 8107065411226245761}
+  - {fileID: 9002209574265743610}
+  - {fileID: 2013268296022207028}
 --- !u!114 &3204910199087151153
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1160,6 +1150,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7965364611972111922}
   - component: {fileID: 7965364611972112333}
+  - component: {fileID: 3558065518815070786}
   m_Layer: 0
   m_Name: SK_Military_Boots3
   m_TagString: Untagged
@@ -1303,6 +1294,21 @@ SkinnedMeshRenderer:
     m_Center: {x: 0.00000044703484, y: 0.018295534, z: 0.08140838}
     m_Extent: {x: 0.2573013, y: 0.17746538, z: 0.1216099}
   m_DirtyAABB: 0
+--- !u!114 &3558065518815070786
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7965364611972111923}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 846b5b465e714b09a02aad2a83741d17, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ZombieWar.PlayerCore::HitFlashEffect
+  m_targetRenderer: {fileID: 7965364611972112333}
+  m_onDamageVFXMaterial: {fileID: 2100000, guid: ad92398b67334fc4d94dfc7f52f38cfe, type: 2}
+  m_onDamageVFXDuration: 0.08
 --- !u!1 &7965364611996333236
 GameObject:
   m_ObjectHideFlags: 0
@@ -2131,6 +2137,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7965364612665374318}
   - component: {fileID: 7965364612665374313}
+  - component: {fileID: 2013268296022207028}
   m_Layer: 0
   m_Name: SK_Military_Shirt3
   m_TagString: Untagged
@@ -2274,6 +2281,21 @@ SkinnedMeshRenderer:
     m_Center: {x: 0.0002965927, y: 0.072602965, z: 1.3167187}
     m_Extent: {x: 0.5479926, y: 0.26235703, z: 0.3437231}
   m_DirtyAABB: 0
+--- !u!114 &2013268296022207028
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7965364612665374319}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 846b5b465e714b09a02aad2a83741d17, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ZombieWar.PlayerCore::HitFlashEffect
+  m_targetRenderer: {fileID: 7965364612665374313}
+  m_onDamageVFXMaterial: {fileID: 2100000, guid: ad92398b67334fc4d94dfc7f52f38cfe, type: 2}
+  m_onDamageVFXDuration: 0.08
 --- !u!1 &7965364612698466233
 GameObject:
   m_ObjectHideFlags: 0
@@ -2284,6 +2306,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7965364612698466232}
   - component: {fileID: 7965364612698466235}
+  - component: {fileID: 8107065411226245761}
   m_Layer: 0
   m_Name: SK_Military_Male_Arms1
   m_TagString: Untagged
@@ -2427,6 +2450,21 @@ SkinnedMeshRenderer:
     m_Center: {x: 0.0030043721, y: 0.012800917, z: 1.1372731}
     m_Extent: {x: 0.7393776, y: 0.18919481, z: 0.22067782}
   m_DirtyAABB: 0
+--- !u!114 &8107065411226245761
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7965364612698466233}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 846b5b465e714b09a02aad2a83741d17, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ZombieWar.PlayerCore::HitFlashEffect
+  m_targetRenderer: {fileID: 7965364612698466235}
+  m_onDamageVFXMaterial: {fileID: 2100000, guid: ad92398b67334fc4d94dfc7f52f38cfe, type: 2}
+  m_onDamageVFXDuration: 0.08
 --- !u!1 &7965364612726479923
 GameObject:
   m_ObjectHideFlags: 0
@@ -3277,6 +3315,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7965364613183606514}
   - component: {fileID: 7965364613183606413}
+  - component: {fileID: 7424665888686082431}
   m_Layer: 0
   m_Name: SK_Military_Head1
   m_TagString: Untagged
@@ -3367,6 +3406,21 @@ SkinnedMeshRenderer:
     m_Center: {x: -0.30696458, y: -0.07000545, z: 0.0001245439}
     m_Extent: {x: 0.18225129, y: 0.157433, z: 0.110385984}
   m_DirtyAABB: 0
+--- !u!114 &7424665888686082431
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7965364613183606515}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 846b5b465e714b09a02aad2a83741d17, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ZombieWar.PlayerCore::HitFlashEffect
+  m_targetRenderer: {fileID: 7965364613183606413}
+  m_onDamageVFXMaterial: {fileID: 2100000, guid: ad92398b67334fc4d94dfc7f52f38cfe, type: 2}
+  m_onDamageVFXDuration: 0.08
 --- !u!1 &7965364613188344223
 GameObject:
   m_ObjectHideFlags: 0
@@ -4135,6 +4189,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7965364613555951412}
   - component: {fileID: 7965364613555951415}
+  - component: {fileID: 9002209574265743610}
   m_Layer: 0
   m_Name: SK_Military_Pants2
   m_TagString: Untagged
@@ -4278,6 +4333,21 @@ SkinnedMeshRenderer:
     m_Center: {x: -0.002769485, y: 0.028202556, z: 0.5631768}
     m_Extent: {x: 0.2828374, y: 0.18594435, z: 0.51537687}
   m_DirtyAABB: 0
+--- !u!114 &9002209574265743610
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7965364613555951413}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 846b5b465e714b09a02aad2a83741d17, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ZombieWar.PlayerCore::HitFlashEffect
+  m_targetRenderer: {fileID: 7965364613555951415}
+  m_onDamageVFXMaterial: {fileID: 2100000, guid: ad92398b67334fc4d94dfc7f52f38cfe, type: 2}
+  m_onDamageVFXDuration: 0.08
 --- !u!1 &7965364613605603840
 GameObject:
   m_ObjectHideFlags: 0

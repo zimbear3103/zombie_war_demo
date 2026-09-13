@@ -24,7 +24,7 @@ public class PlayerController : MonoBehaviour
     [Tooltip("Optional hand socket. Falls back to one world unit above the player.")]
     [SerializeField] private Transform m_bombThrowOrigin;
     [SerializeField, Min(1)] private int m_maxBombCount = 3;
-        
+
     private readonly List<WeaponController> m_ownedWeapons = new List<WeaponController>(3);
     private readonly List<BombController> m_bombs = new List<BombController>(3);
     private int m_lastBombThrowFrame = -1;
@@ -355,5 +355,16 @@ public class PlayerController : MonoBehaviour
 
         m_bombs.RemoveAt(0);
         m_lastBombThrowFrame = Time.frameCount;
+    }
+
+    public void OnRefillAllAmmo()
+    {
+        foreach (var weapon in m_ownedWeapons)
+        {
+            weapon.ResetWeapon();
+        }
+
+        for (int index = m_bombs.Count; index < m_maxBombCount; index++)
+            m_bombs.Add(m_startingBomb);
     }
 }

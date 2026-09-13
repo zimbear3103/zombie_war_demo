@@ -43,6 +43,7 @@ AudioSource:
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: 0}
   m_audioClip: {fileID: 0}
+  m_Resource: {fileID: 0}
   m_PlayOnAwake: 1
   m_Volume: 1
   m_Pitch: 1
@@ -171,6 +172,7 @@ AudioSource:
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: 0}
   m_audioClip: {fileID: 0}
+  m_Resource: {fileID: 0}
   m_PlayOnAwake: 1
   m_Volume: 1
   m_Pitch: 1
@@ -299,6 +301,7 @@ AudioSource:
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: 0}
   m_audioClip: {fileID: 0}
+  m_Resource: {fileID: 0}
   m_PlayOnAwake: 0
   m_Volume: 1
   m_Pitch: 1
@@ -450,6 +453,7 @@ MonoBehaviour:
     m_clip: {fileID: 8300000, guid: 5b7cab0534983ab4f87896381b057350, type: 3}
   - m_name: Bg_Victory
     m_clip: {fileID: 8300000, guid: 0ce2174e6c380254e9ec129ccddfc688, type: 3}
+  m_maxGameplayVoices: 16
 --- !u!1 &7745160394103274741
 GameObject:
   m_ObjectHideFlags: 0
@@ -479,7 +483,7 @@ Transform:
   m_GameObject: {fileID: 7745160394103274741}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.62653804, y: -0.76419765, z: 0.46609005}
+  m_LocalPosition: {x: 0, y: -0.76419765, z: 0.46609005}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -514,6 +518,7 @@ MonoBehaviour:
   m_mainState: 0
   m_nextMainState: 0
   m_mainStatus: 0
+  m_startGameplayDirectlyInEditor: 1
 --- !u!114 &365308519692808066
 MonoBehaviour:
   m_ObjectHideFlags: 0

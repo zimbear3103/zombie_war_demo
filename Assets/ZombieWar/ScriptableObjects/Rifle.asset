@@ -21,7 +21,7 @@ MonoBehaviour:
   m_damage: 25
   m_range: 35
   m_pelletCount: 1
-  m_spreadAngle: 0
+  m_spreadAngle: 6
   m_knockbackForce: 0
   m_handLocalPosition: {x: 0, y: 0, z: 0}
   m_handLocalEulerAngles: {x: 0, y: 0, z: 0}

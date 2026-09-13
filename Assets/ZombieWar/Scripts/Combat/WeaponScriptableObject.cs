@@ -23,6 +23,7 @@ public class WeaponScriptableObject : ScriptableObject
     [SerializeField] private float m_damage = 10f;
     [SerializeField] private float m_range = 100f;
     [SerializeField] private int m_pelletCount = 6;
+    [Tooltip("Total horizontal spread in degrees. Rifle randomizes each shot within half this angle on either side; shotgun distributes pellets across it. Pistol ignores it. Zero fires straight.")]
     [SerializeField] private float m_spreadAngle = 20f;
     [Tooltip("Initial zombie knockback speed in world units per second. Hits refresh velocity; shotgun pellets do not stack it.")]
     [SerializeField] private float m_knockbackForce;

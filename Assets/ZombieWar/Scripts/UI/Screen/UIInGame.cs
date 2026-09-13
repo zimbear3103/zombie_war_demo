@@ -11,7 +11,7 @@ public class UIInGame : UIScreen
     [SerializeField] private TextMeshProUGUI m_gunText;
     [FormerlySerializedAs("m_statsGunText")]
     [SerializeField] private TextMeshProUGUI m_statsText;
-
+    [SerializeField] private TextMeshProUGUI m_playerHealthText;
     [Header("Gameplay Actions")]
     [SerializeField] private Button m_bombButton;
     [SerializeField] private Button m_swapButton;
@@ -22,7 +22,7 @@ public class UIInGame : UIScreen
     private int m_displayedAmmoInMagazine;
     private int m_displayedTotalAmmo;
     private int m_displayedBombCount;
-
+    private float m_displayedHealth;
     private void OnEnable()
     {
         if (m_settingButton != null)
@@ -83,6 +83,9 @@ public class UIInGame : UIScreen
         m_displayedAmmoInMagazine = ammoInMagazine;
         m_displayedTotalAmmo = totalAmmo;
         m_displayedBombCount = bombCount;
+        m_displayedHealth = player.GetComponent<PlayerStats>().CurrentHealth;
+
+        m_playerHealthText.text = $"Health {m_displayedHealth}";
     }
 
     private void OnSettingButtonPressed()

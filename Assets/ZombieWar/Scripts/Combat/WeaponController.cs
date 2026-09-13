@@ -309,7 +309,9 @@ public class WeaponController : MonoBehaviour
         float firstAngle = bulletCount > 1 ? -m_spreadAngle * 0.5f : 0f;
         for (int index = 0; index < bulletCount; index++)
         {
-            float angle = firstAngle + spreadStep * index;
+            float angle = m_weaponData.Kind == WeaponKind.Rifle
+                ? UnityEngine.Random.Range(-m_spreadAngle * 0.5f, m_spreadAngle * 0.5f)
+                : firstAngle + spreadStep * index;
             Vector3 direction = Quaternion.AngleAxis(angle, Vector3.up) * centerDirection;
             //Debug.Log($"{name} firing bullet {index + 1}/{bulletCount} at angle {angle} degrees, direction {direction}");
             var bullet = AcquireBullet();

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Serialization;
@@ -13,6 +13,7 @@ public class BombController : MonoBehaviour
     [SerializeField] private LayerMask m_collisionMask = Physics.DefaultRaycastLayers;
 
     [Header("Explosion")]
+    [SerializeField] private int m_explodeDamage = 80;
     [FormerlySerializedAs("explosionRadius")]
     [SerializeField, Min(0.1f)] private float m_explosionRadius = 5f;
     [FormerlySerializedAs("explosionForce")]
@@ -170,17 +171,47 @@ public class BombController : MonoBehaviour
         if (m_hasExploded) return;
         m_hasExploded = true;
         m_isArmed = false;
+
+        // Lưu lại trước khi ReleaseOwner() xoá m_owner
+        GameObject damageSource = m_owner != null ? m_owner.gameObject : gameObject;
         ReleaseOwner();
 
-        // Notify presentation before effects or physics can trigger other gameplay callbacks.
         Exploded?.Invoke(transform.position);
 
         if (m_explosionEffectPrefab != null)
             Instantiate(m_explosionEffectPrefab, transform.position, transform.rotation);
-        KnockBack();
+
+        ApplyExplosionEffects(damageSource);
         Destroy(gameObject);
     }
 
+    private void ApplyExplosionEffects(GameObject damageSource)
+    {
+        Collider[] colliders = Physics.OverlapSphere(transform.position, m_explosionRadius);
+        var affectedBodies = new HashSet<Rigidbody>();
+        var damagedTargets = new HashSet<IDamageable>();
+
+        foreach (Collider nearbyObject in colliders)
+        {
+            Rigidbody body = nearbyObject.attachedRigidbody;
+            if (body != null && !body.isKinematic && affectedBodies.Add(body))
+                body.AddExplosionForce(m_explosionForce, transform.position, m_explosionRadius);
+
+            IDamageable damageable = nearbyObject.GetComponent<IDamageable>();
+            if (damageable == null || !damagedTargets.Add(damageable)) continue;
+
+            Vector3 hitPoint = nearbyObject.transform.position;
+            Vector3 hitDirection = hitPoint - transform.position;
+            if (hitDirection.sqrMagnitude < 0.0001f) hitDirection = Vector3.up;
+
+            damageable.TakeDamage(new DamageInfo(
+                m_explodeDamage,
+                hitPoint,
+                hitDirection.normalized,
+                0f,
+                damageSource));
+        }
+    }
     private void KnockBack()
     {
         Collider[] colliders = Physics.OverlapSphere(transform.position, m_explosionRadius);
