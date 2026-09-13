@@ -44,6 +44,7 @@ public class WeaponController : MonoBehaviour
     private bool m_isConfigured;
     private bool m_reportedInvalidConfiguration;
     private bool m_isReloading;
+    private Coroutine m_reloadCoroutine;
     private readonly List<BulletBehaviour> m_bullets = new List<BulletBehaviour>();
     private Action<RaycastHit> m_bulletHitCallback;
     private Action<ProjectileBehaviour> m_releaseBulletCallback;
@@ -55,11 +56,16 @@ public class WeaponController : MonoBehaviour
     public int MaxMagazine => m_maxMagazine;
     public int MagazineCapacity => m_magazineCapacity;
     public int AmmoInMagazine => m_ammoInMagazine;
+    public bool IsReloading => m_isReloading;
+    public float ReloadDuration => m_reloadTime;
     public Transform RightHandGrip => m_rightHandGrip;
     public Transform LeftHandGrip => m_leftHandGrip;
+    public Vector3 HandLocalPosition => m_weaponData != null ? m_weaponData.HandLocalPosition : Vector3.zero;
+    public Vector3 HandLocalEulerAngles => m_weaponData != null ? m_weaponData.HandLocalEulerAngles : Vector3.zero;
 
     public event Action Fired;
     public event Action<RaycastHit> Hit;
+    public event Action<bool> ReloadStateChanged;
 
     public bool Initialize(WeaponScriptableObject data, Transform origin, PlayerStats owner, int hitMask)
     {
@@ -70,6 +76,7 @@ public class WeaponController : MonoBehaviour
 
     public void Configure(Transform muzzle, Transform origin, PlayerStats owner, int hitMask)
     {
+        CancelReload();
         m_muzzle = muzzle;
         m_origin = origin;
         m_owner = owner;
@@ -90,7 +97,7 @@ public class WeaponController : MonoBehaviour
 
     public bool TryFire(Vector3 direction, float now)
     {
-        if (!m_gameplayEnabled || !isActiveAndEnabled)
+        if (!m_gameplayEnabled || !isActiveAndEnabled || m_isReloading)
         {
             return false;
         }
@@ -169,21 +176,58 @@ public class WeaponController : MonoBehaviour
         }
         
         Debug.Log($"{name} starting reload with {m_numberMagazine} magazines remaining.");
-        StartCoroutine(onReload());
+        m_reloadCoroutine = StartCoroutine(Reload());
+        SetReloading(true);
         return true;
     }
-    private IEnumerator onReload()
+
+    private IEnumerator Reload()
     {
-        if (!m_gameplayEnabled || !isActiveAndEnabled || m_numberMagazine <= 0)
+        float remainingTime = m_reloadTime;
+        while (true)
         {
-           yield return null;
-        };
-        m_isReloading = true;
-        yield return new WaitForSeconds(m_reloadTime);
+            // Yield first so the coroutine handle exists before any reload callbacks run.
+            yield return null;
+            if (!isActiveAndEnabled || m_owner == null || !m_owner.isActiveAndEnabled || !m_owner.IsAlive)
+            {
+                m_reloadCoroutine = null;
+                SetReloading(false);
+                yield break;
+            }
+
+            // Gameplay gating and scaled time both hold progress during a pause.
+            if (!m_gameplayEnabled || Time.deltaTime <= 0f) continue;
+            remainingTime -= Time.deltaTime;
+            if (remainingTime <= 0f) break;
+        }
+
         m_numberMagazine = Mathf.Max(0, m_numberMagazine - 1);
         m_ammoInMagazine = m_magazineCapacity;
         Debug.Log($"{name} reloading to {m_ammoInMagazine}/{m_magazineCapacity} rounds.");
-        m_isReloading = false;
+        m_reloadCoroutine = null;
+        SetReloading(false);
+    }
+
+    private void SetReloading(bool value)
+    {
+        if (m_isReloading == value) return;
+        m_isReloading = value;
+        ReloadStateChanged?.Invoke(value);
+    }
+
+    private void CancelReload()
+    {
+        if (m_reloadCoroutine != null)
+        {
+            StopCoroutine(m_reloadCoroutine);
+            m_reloadCoroutine = null;
+        }
+        SetReloading(false);
+    }
+
+    private void OnDisable()
+    {
+        CancelReload();
     }
 
     public void SetGameplayEnabled(bool value)
@@ -193,6 +237,7 @@ public class WeaponController : MonoBehaviour
 
     public void ResetWeapon()
     {
+        CancelReload();
         m_nextShotTime = float.NegativeInfinity;
         m_numberMagazine = m_maxMagazine;
         m_ammoInMagazine = m_magazineCapacity;
@@ -220,6 +265,7 @@ public class WeaponController : MonoBehaviour
 
         float fireInterval = m_weaponData.FireInterval;
         int magazineCapacity = m_weaponData.MagazineCapacity;
+        float reloadTime = m_weaponData.ReloadTime;
         float damage = m_weaponData.Damage;
         float range = m_weaponData.Range;
         int pelletCount = m_weaponData.PelletCount;
@@ -228,18 +274,20 @@ public class WeaponController : MonoBehaviour
 
         if (!IsFinite(fireInterval) || fireInterval <= 0f ||
             magazineCapacity < 1 ||
+            !IsFinite(reloadTime) || reloadTime < 0f ||
             !IsFinite(damage) || damage < 0f ||
             !IsFinite(range) || range <= 0f ||
             pelletCount < 1 || pelletCount > 32 ||
             !IsFinite(spreadAngle) || spreadAngle < 0f || spreadAngle > 360f ||
             !IsFinite(knockbackForce) || knockbackForce < 0f)
         {
-            ReportInvalidConfiguration("Weapon data contains an invalid fire interval, magazine capacity, damage, range, pellet count, spread or knockback value.");
+            ReportInvalidConfiguration("Weapon data contains an invalid fire interval, magazine capacity, reload time, damage, range, pellet count, spread or knockback value.");
             return false;
         }
 
         m_fireInterval = fireInterval;
         m_magazineCapacity = magazineCapacity;
+        m_reloadTime = reloadTime;
         m_damage = damage;
         m_range = range;
         m_pelletCount = pelletCount;

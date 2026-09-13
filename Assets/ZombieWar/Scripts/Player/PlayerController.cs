@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Animations.Rigging;
 using UnityEngine.InputSystem;
 
 [DisallowMultipleComponent]
@@ -19,13 +18,15 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private LayerMask m_hitMask = Physics.DefaultRaycastLayers;
 
     [Header("Bomb")]
+    [Tooltip("Bomb prefab granted at the start of each run. Leave empty to start without bombs.")]
+    [SerializeField] private BombController m_startingBomb;
+    [SerializeField, Min(0)] private int m_startingBombCount = 1;
     [Tooltip("Optional hand socket. Falls back to one world unit above the player.")]
     [SerializeField] private Transform m_bombThrowOrigin;
     [SerializeField, Min(1)] private int m_maxBombCount = 3;
         
     private readonly List<WeaponController> m_ownedWeapons = new List<WeaponController>(3);
     private readonly List<BombController> m_bombs = new List<BombController>(3);
-    private InputAction m_bombAction;
     private int m_lastBombThrowFrame = -1;
     private PlayerStats m_stats;
     private WeaponController m_activeWeapon;
@@ -36,12 +37,18 @@ public class PlayerController : MonoBehaviour
     private bool m_hasFocus = true;
     private bool m_applicationPaused;
     private bool m_reportedLoadoutError;
-
+    private bool m_isMoving;
+    private bool m_isAiming;
     public PlayerStats Stats => m_stats != null ? m_stats : (m_stats = GetComponent<PlayerStats>());
     public WeaponController ActiveWeapon => m_activeWeapon;
     public int BombCount => m_bombs.Count;
     public bool CanAct => m_gameplayEnabled && m_hasFocus && !m_applicationPaused && isActiveAndEnabled &&
                           Stats != null && Stats.isActiveAndEnabled && Stats.IsAlive;
+    public bool IsMoving => m_isMoving;
+    public bool IsAimingActive => m_isAiming;
+    public Transform FacingRoot => m_facingRoot != null ? m_facingRoot : transform;
+    public Transform WeaponSocket => m_weaponSocket;
+    public Vector3 WorldMoveVelocity { get; private set; }
     public float NormalizedMoveSpeed { get; private set; }
     public event Action<WeaponController> WeaponChanged;
     public event Action RunReset;
@@ -62,18 +69,12 @@ public class PlayerController : MonoBehaviour
     private void OnEnable()
     {
         if (Stats != null) Stats.Died += OnDied;
-        PlayerInput playerInput = GetComponent<PlayerInput>();
-        m_bombAction = playerInput != null && playerInput.actions != null
-            ? playerInput.actions.FindAction("Player/Bomb", false) : null;
-        if (m_bombAction != null) m_bombAction.performed += OnBombPerformed;
         ClearInput();
     }
 
     private void OnDisable()
     {
         if (m_stats != null) m_stats.Died -= OnDied;
-        if (m_bombAction != null) m_bombAction.performed -= OnBombPerformed;
-        m_bombAction = null;
         SetGameplayEnabled(false);
     }
 
@@ -103,6 +104,8 @@ public class PlayerController : MonoBehaviour
 
     public void OnSwitchWeapon(InputAction.CallbackContext context)
     {
+        // Touch actions come from the dedicated UI button, not a screen-wide tap binding.
+        if (context.control?.device is Touchscreen) return;
         if (context.performed) SwitchWeapon();
     }
 
@@ -111,6 +114,9 @@ public class PlayerController : MonoBehaviour
         if (!CanAct || Time.deltaTime <= 0f)
         {
             NormalizedMoveSpeed = 0f;
+            WorldMoveVelocity = Vector3.zero;
+            m_isMoving = false;
+            m_isAiming = false;
             return;
         }
 
@@ -125,19 +131,23 @@ public class PlayerController : MonoBehaviour
         if (!CanAct || Time.deltaTime <= 0f)
         {
             NormalizedMoveSpeed = 0f;
+            WorldMoveVelocity = Vector3.zero;
+            m_isMoving = false;
             return;
         }
 
         Vector3 movement = Move(m_moveInput);
-        transform.Translate(movement * m_stats.MoveSpeed * Time.deltaTime, Space.World);
+        WorldMoveVelocity = movement * m_stats.MoveSpeed;
+        transform.Translate(WorldMoveVelocity * Time.deltaTime, Space.World);
         NormalizedMoveSpeed = m_stats.MoveSpeed > 0f ? movement.magnitude : 0f;
+        m_isMoving = NormalizedMoveSpeed > 0f;
     }
 
     private void UpdateFacing()
     {
+        m_isAiming = IsAiming(m_aimInput, m_aimDeadZone);
         m_lastFacing = Facing(Vector2.zero, m_aimInput, m_lastFacing, m_aimDeadZone);
-        Transform facingRoot = m_facingRoot != null ? m_facingRoot : transform;
-        facingRoot.rotation = Quaternion.LookRotation(m_lastFacing, Vector3.up);
+        FacingRoot.rotation = Quaternion.LookRotation(m_lastFacing, Vector3.up);
     }
 
     private void UpdateShooting()
@@ -168,6 +178,12 @@ public class PlayerController : MonoBehaviour
         m_bombs.Clear();
         m_lastBombThrowFrame = -1;
         RunReset?.Invoke();
+        if (m_startingBomb != null)
+        {
+            int startingBombCount = Mathf.Clamp(m_startingBombCount, 0, Mathf.Max(1, m_maxBombCount));
+            for (int index = 0; index < startingBombCount; index++)
+                m_bombs.Add(m_startingBomb);
+        }
         m_reportedLoadoutError = false;
         if (m_startingWeapon != null) AddOrEquipWeapon(m_startingWeapon);
         // The session opens gameplay only after both player and spawner are ready.
@@ -205,7 +221,7 @@ public class PlayerController : MonoBehaviour
         }
 
         var instance = Instantiate(data.WeaponPrefab, m_weaponSocket);
-        instance.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
+        instance.transform.SetLocalPositionAndRotation(data.HandLocalPosition, Quaternion.Euler(data.HandLocalEulerAngles));
         var weapon = instance.GetComponent<WeaponController>();
         if (!weapon.Initialize(data, m_obstructionOrigin, Stats, m_hitMask.value))
         {
@@ -234,7 +250,7 @@ public class PlayerController : MonoBehaviour
 
     public void SwitchWeapon()
     {
-        if (!CanAct || m_ownedWeapons.Count < 2) return;
+        if (!CanAct || Time.timeScale <= 0f || m_ownedWeapons.Count < 2) return;
         int index = m_ownedWeapons.IndexOf(m_activeWeapon);
         for (int offset = 1; offset <= m_ownedWeapons.Count; offset++)
         {
@@ -272,6 +288,9 @@ public class PlayerController : MonoBehaviour
         m_moveInput = Vector2.zero;
         m_aimInput = Vector2.zero;
         NormalizedMoveSpeed = 0f;
+        WorldMoveVelocity = Vector3.zero;
+        m_isMoving = false;
+        m_isAiming = false;
     }
 
     // These rules also define the public movement/aim conversion contract.
@@ -313,6 +332,7 @@ public class PlayerController : MonoBehaviour
 
     public void OnThrowBomb()
     {
+        Debug.Log("On Throw");
         if (!CanAct || Time.timeScale <= 0f || m_lastBombThrowFrame == Time.frameCount) return;
         StartThrowBomb();
     }
@@ -320,8 +340,9 @@ public class PlayerController : MonoBehaviour
     private void StartThrowBomb()
     {
         while (m_bombs.Count > 0 && m_bombs[0] == null) m_bombs.RemoveAt(0);
-        if (m_bombs.Count == 0) return;
 
+        if (m_bombs.Count == 0) return;
+        Debug.Log("throw bomb");
         Vector3 direction = Facing(Vector2.zero, m_aimInput, m_lastFacing, m_aimDeadZone);
         Vector3 origin = m_bombThrowOrigin != null
             ? m_bombThrowOrigin.position : transform.position + Vector3.up;
@@ -335,6 +356,4 @@ public class PlayerController : MonoBehaviour
         m_bombs.RemoveAt(0);
         m_lastBombThrowFrame = Time.frameCount;
     }
-
-    private void OnBombPerformed(InputAction.CallbackContext context) => OnThrowBomb();
 }

@@ -12,15 +12,15 @@ public class PlayerCollector : MonoBehaviour
     private void OnTriggerEnter(Collider other)
     {
         if (m_player == null || !m_player.CanAct) return;
-        if (other.CompareTag("WeaponPickup") == true)
+        if (other.CompareTag("Weapon") == true)
         {
-            var pickup = other.GetComponentInParent<WeaponPickup>();
+            var pickup = other.GetComponent<WeaponPickup>();
             if (pickup != null) pickup.TryCollect(m_player);
         }
 
-        if (other.CompareTag("BombPickup") == true)
+        if (other.CompareTag("Bomb") == true)
         {
-            var pickup = other.GetComponentInParent<BombPickup>();
+            var pickup = other.GetComponent<BombPickup>();
             if (pickup != null) pickup.TryCollect(m_player);
         }
     }

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Serialization;
@@ -22,6 +23,9 @@ public class BombController : MonoBehaviour
     [FormerlySerializedAs("explosionEffectPrefab")]
     [SerializeField] private GameObject m_explosionEffectPrefab;
 
+    [Header("Audio")]
+    [SerializeField] private GameplaySound m_explosionSound = new GameplaySound();
+
     private readonly RaycastHit[] m_hitBuffer = new RaycastHit[16];
     private PlayerController m_owner;
     private Vector3 m_startPosition;
@@ -33,6 +37,9 @@ public class BombController : MonoBehaviour
     private bool m_isFlying;
     private bool m_hasLanded;
     private bool m_hasExploded;
+
+    public GameplaySound ExplosionSound => m_explosionSound;
+    public event Action<Vector3> Exploded;
 
     public bool Throw(PlayerController owner, Vector3 launchPosition, Vector3 direction)
     {
@@ -164,6 +171,9 @@ public class BombController : MonoBehaviour
         m_hasExploded = true;
         m_isArmed = false;
         ReleaseOwner();
+
+        // Notify presentation before effects or physics can trigger other gameplay callbacks.
+        Exploded?.Invoke(transform.position);
 
         if (m_explosionEffectPrefab != null)
             Instantiate(m_explosionEffectPrefab, transform.position, transform.rotation);

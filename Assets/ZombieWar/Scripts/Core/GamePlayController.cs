@@ -67,6 +67,7 @@ public class GamePlayController : Singleton<GamePlayController>
     public GameStateType NextGameState => m_nextGameState;
     public float RemainingTime => m_remainingTime;
     public int KillCount => m_killCount;
+    public PlayerController Player => m_playerController;
 
     public int SelectedSongIndex { get; set; }
 
@@ -122,6 +123,9 @@ public class GamePlayController : Singleton<GamePlayController>
     {
         CancelDelayedCallbacks();
         SetGameplayEnabled(false);
+
+        if (SoundManager.HasInstance)
+            SoundManager.Instance.StopAllGameplaySounds();
 
         if (m_zombieSpawner != null)
             m_zombieSpawner.EndRun();
@@ -705,6 +709,9 @@ public class GamePlayController : Singleton<GamePlayController>
     {
         CancelDelayedCallbacks();
         SetGameplayEnabled(false);
+
+        if (SoundManager.HasInstance)
+            SoundManager.Instance.StopAllGameplaySounds();
 
         if (m_zombieSpawner != null)
             m_zombieSpawner.EndRun();

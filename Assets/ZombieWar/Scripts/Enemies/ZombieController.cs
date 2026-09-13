@@ -1,6 +1,5 @@
 using System;
 using System.Collections;
-using TheVayuputra;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -63,11 +62,15 @@ public class ZombieController : MonoBehaviour
     public ZombieStats Stats => m_stats;
     public bool IsSpawnReady => m_isSpawned && isActiveAndEnabled && m_stats != null &&
                                 m_stats.isActiveAndEnabled && CanUseAgent();
+    public bool CanPlayLivingAudio => CanPursueTarget();
 
     // Died records the kill; DeathCompleted allows the spawner to return the corpse to its pool.
     public event Action<ZombieController> Died;
     public event Action<ZombieController> DeathCompleted;
     public event Action<ZombieController> Released;
+    public event Action<ZombieController> AttackPerformed;
+    public event Action<ZombieController> DeathStarted;
+    public event Action<ZombieController> RuntimeStateReset;
 
     private void Awake()
     {
@@ -157,6 +160,7 @@ public class ZombieController : MonoBehaviour
     public bool PrepareForSpawn(Transform target, PlayerStats targetStats, bool gameplayEnabled)
     {
         CacheComponents();
+        RuntimeStateReset?.Invoke(this);
         ResetDeathSequence();
 
         if (!gameObject.activeSelf && !enabled) enabled = true;
@@ -347,14 +351,19 @@ public class ZombieController : MonoBehaviour
         if (CanUseAnimator() && m_animator.GetCurrentAnimatorStateInfo(0).shortNameHash != m_attackStateHash &&
             (!m_animator.IsInTransition(0) || m_animator.GetNextAnimatorStateInfo(0).shortNameHash != m_attackStateHash))
             m_animator.SetTrigger(m_attackHash);
+
+        int spawnVersion = m_spawnVersion;
+        m_attackCooldownRemaining = m_stats.AttackInterval;
+        AttackPerformed?.Invoke(this);
+        if (m_spawnVersion != spawnVersion || !CanPursueTarget())
+            return;
+
         m_targetStats.TakeDamage(new DamageInfo(
             m_stats.Damage,
             m_target.position,
             hitDirection,
             0f,
             gameObject));
-        m_attackCooldownRemaining = m_stats.AttackInterval;
-
     }
 
     private bool IsMeleeBlocked()
@@ -424,6 +433,11 @@ public class ZombieController : MonoBehaviour
         }
 
         int spawnVersion = m_spawnVersion;
+        // Audio must capture the death position before kill listeners can recycle this instance.
+        DeathStarted?.Invoke(this);
+        if (!IsCurrentDeath(spawnVersion))
+            return;
+
         Died?.Invoke(this);
 
         // A kill listener can end/restart the run and even reuse this instance immediately.
@@ -602,6 +616,7 @@ public class ZombieController : MonoBehaviour
 
     private void ClearRuntimeState()
     {
+        RuntimeStateReset?.Invoke(this);
         ResetDeathSequence();
         m_gameplayEnabled = false;
         m_target = null;

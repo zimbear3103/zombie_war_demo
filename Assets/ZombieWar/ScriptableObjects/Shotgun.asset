@@ -1,0 +1,48 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d7b2fc2f07d86f45a58925f86189a1b, type: 3}
+  m_Name: Shotgun
+  m_EditorClassIdentifier: ZombieWar.PlayerCore::WeaponScriptableObject
+  m_weaponPrefab: {fileID: 5369689454146716628, guid: 07d6ca7b9e1dbba488358162b07961cf, type: 3}
+  m_kind: 2
+  m_fireInterval: 0.85
+  m_magazineMaximum: 3
+  m_magazineCapacity: 6
+  m_reloadTime: 2
+  m_damage: 22
+  m_range: 12
+  m_pelletCount: 6
+  m_spreadAngle: 16
+  m_knockbackForce: 0
+  m_handLocalPosition: {x: 0, y: 0, z: 0}
+  m_handLocalEulerAngles: {x: 0, y: 0, z: 0}
+  m_fireSound:
+    m_clips:
+    - {fileID: 8300000, guid: 230d59294c9857140b63dd308ea4bd63, type: 3}
+    m_volume: 0.8
+    m_pitchRange: {x: 0.95, y: 1.05}
+    m_minDistance: 5
+    m_maxDistance: 40
+  m_reloadSound:
+    m_clips:
+    - {fileID: 8300000, guid: 406c929b7299afb469c82778f8d15d5b, type: 3}
+    m_volume: 0.8
+    m_pitchRange: {x: 0.95, y: 1.05}
+    m_minDistance: 5
+    m_maxDistance: 40
+  m_equipSound:
+    m_clips:
+    - {fileID: 8300000, guid: 406c929b7299afb469c82778f8d15d5b, type: 3}
+    m_volume: 0.8
+    m_pitchRange: {x: 0.95, y: 1.05}
+    m_minDistance: 5
+    m_maxDistance: 40
