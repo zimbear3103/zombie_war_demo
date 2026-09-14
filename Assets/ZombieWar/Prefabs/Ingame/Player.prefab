@@ -172,7 +172,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerController
   m_facingRoot: {fileID: 0}
   m_aimDeadZone: 0.25
-  m_startingWeapon: {fileID: 11400000, guid: db141a7607bd42c49a2296c878b6bf9a, type: 2}
+  m_startingWeapon: {fileID: 11400000, guid: 8c89dae4c0d29ef4a8f9185104e2bcda, type: 2}
   m_weaponSocket: {fileID: 3922730576204198536}
   m_obstructionOrigin: {fileID: 7965364613682730305}
   m_hitMask:
