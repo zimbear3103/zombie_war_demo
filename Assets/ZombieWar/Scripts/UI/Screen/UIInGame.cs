@@ -8,8 +8,10 @@ public class UIInGame : UIScreen
 {
     [Header("Top UI")]
     [SerializeField] private Button m_settingButton;
-    [SerializeField] private TextMeshProUGUI m_gunText;
+    [SerializeField] private TextMeshProUGUI m_timerText;
+
     [FormerlySerializedAs("m_statsGunText")]
+    [SerializeField] private TextMeshProUGUI m_gunText;
     [SerializeField] private TextMeshProUGUI m_statsText;
     [SerializeField] private TextMeshProUGUI m_playerHealthText;
     [Header("Gameplay Actions")]
@@ -22,7 +24,9 @@ public class UIInGame : UIScreen
     private int m_displayedAmmoInMagazine;
     private int m_displayedTotalAmmo;
     private int m_displayedBombCount;
+    private int m_displayedRemainingSeconds;
     private float m_displayedHealth;
+
     private void OnEnable()
     {
         if (m_settingButton != null)
@@ -34,6 +38,12 @@ public class UIInGame : UIScreen
         if(m_reloadButton != null)
             m_reloadButton.onClick.AddListener(OnReloadButtonPressed);
 
+        RefreshHud(true);
+    }
+
+    public override void Show()
+    {
+        base.Show();
         RefreshHud(true);
     }
 
@@ -64,6 +74,15 @@ public class UIInGame : UIScreen
         int ammoInMagazine = weapon != null ? weapon.AmmoInMagazine : 0;
         int totalAmmo = weapon != null ? weapon.TotalAmmo : 0;
         int bombCount = player != null ? player.BombCount : 0;
+        PlayerStats playerStats = player != null ? player.Stats : null;
+        float health = playerStats != null ? playerStats.CurrentHealth : 0f;
+        int remainingSeconds = GetTimerDisplaySeconds(gameController != null ? gameController.RemainingTime : 0f);
+
+        if (force || remainingSeconds != m_displayedRemainingSeconds)
+        {
+            if (m_timerText != null)
+                m_timerText.text = $"{remainingSeconds / 60:00}:{remainingSeconds % 60:00}";
+        }
 
         if (force || weapon != m_displayedWeapon || weaponKind != m_displayedWeaponKind)
         {
@@ -78,14 +97,27 @@ public class UIInGame : UIScreen
                 m_statsText.text = $"{ammoInMagazine}/{totalAmmo} Bomb: {bombCount}";
         }
 
+        if (force || health != m_displayedHealth)
+        {
+            if (m_playerHealthText != null)
+                m_playerHealthText.text = $"Health: {health}";
+        }
+
         m_displayedWeapon = weapon;
         m_displayedWeaponKind = weaponKind;
         m_displayedAmmoInMagazine = ammoInMagazine;
         m_displayedTotalAmmo = totalAmmo;
         m_displayedBombCount = bombCount;
-        m_displayedHealth = player.GetComponent<PlayerStats>().CurrentHealth;
+        m_displayedRemainingSeconds = remainingSeconds;
+        m_displayedHealth = health;
+    }
 
-        m_playerHealthText.text = $"Health {m_displayedHealth}";
+    private static int GetTimerDisplaySeconds(float remainingTime)
+    {
+        if (float.IsNaN(remainingTime) || float.IsInfinity(remainingTime) || remainingTime <= 0f)
+            return 0;
+
+        return remainingTime >= int.MaxValue ? int.MaxValue : Mathf.CeilToInt(remainingTime);
     }
 
     private void OnSettingButtonPressed()

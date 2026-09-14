@@ -18,16 +18,16 @@ MonoBehaviour:
   m_magazineMaximum: 3
   m_magazineCapacity: 30
   m_reloadTime: 1.8
-  m_damage: 25
+  m_damage: 35
   m_range: 35
   m_pelletCount: 1
-  m_spreadAngle: 6
+  m_spreadAngle: 12
   m_knockbackForce: 0
-  m_handLocalPosition: {x: 0, y: 0, z: 0}
+  m_handLocalPosition: {x: 0.02, y: 0, z: 0}
   m_handLocalEulerAngles: {x: 0, y: 0, z: 0}
   m_fireSound:
     m_clips:
-    - {fileID: 8300000, guid: 4f02814b62ca4c9469420ae40236bc23, type: 3}
+    - {fileID: 8300000, guid: 1b145bcffd767854fb0c71c37678ebaa, type: 3}
     m_volume: 0.8
     m_pitchRange: {x: 0.95, y: 1.05}
     m_minDistance: 110

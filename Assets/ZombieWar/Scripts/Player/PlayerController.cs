@@ -102,13 +102,6 @@ public class PlayerController : MonoBehaviour
         m_aimInput = CanAct ? SanitizeInput(context.ReadValue<Vector2>()) : Vector2.zero;
     }
 
-    public void OnSwitchWeapon(InputAction.CallbackContext context)
-    {
-        // Touch actions come from the dedicated UI button, not a screen-wide tap binding.
-        if (context.control?.device is Touchscreen) return;
-        if (context.performed) SwitchWeapon();
-    }
-
     private void Update()
     {
         if (!CanAct || Time.deltaTime <= 0f)
@@ -166,10 +159,10 @@ public class PlayerController : MonoBehaviour
         if (m_activeWeapon != null) m_activeWeapon.SetGameplayEnabled(CanAct);
     }
 
-    public void ResetForRun(Vector3 position, Quaternion rotation)
+    public bool ResetForRun(Vector3 position, Quaternion rotation)
     {
         SetGameplayEnabled(false);
-        if (Stats == null) return;
+        if (Stats == null) return false;
         transform.SetPositionAndRotation(position, rotation);
         m_lastFacing = Facing(Vector2.zero, Vector2.zero, rotation * Vector3.forward, m_aimDeadZone);
         if (m_facingRoot != null) m_facingRoot.rotation = Quaternion.LookRotation(m_lastFacing, Vector3.up);
@@ -185,8 +178,19 @@ public class PlayerController : MonoBehaviour
                 m_bombs.Add(m_startingBomb);
         }
         m_reportedLoadoutError = false;
-        if (m_startingWeapon != null) AddOrEquipWeapon(m_startingWeapon);
+        if (m_startingWeapon != null && !AddOrEquipWeapon(m_startingWeapon)) return false;
         // The session opens gameplay only after both player and spawner are ready.
+        return true;
+    }
+
+    public void EndRun()
+    {
+        SetGameplayEnabled(false);
+        // Cancel thrown bombs and release pickup subscriptions before the map is disposed.
+        RunReset?.Invoke();
+        ClearLoadout();
+        m_bombs.Clear();
+        m_lastBombThrowFrame = -1;
     }
 
     public bool TryCollectWeapon(WeaponScriptableObject data)
@@ -267,6 +271,7 @@ public class PlayerController : MonoBehaviour
         {
             if (weapon == null) continue;
             weapon.SetGameplayEnabled(false);
+            weapon.ResetWeapon();
             weapon.gameObject.SetActive(false);
             Destroy(weapon.gameObject);
         }

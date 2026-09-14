@@ -12,5 +12,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1002a6ef18b39c141acf91e32f008388, type: 3}
   m_Name: Character
   m_EditorClassIdentifier: ZombieWar.PlayerCore::CharacterScriptableObject
-  m_maxHealth: 100
+  m_maxHealth: 9999
   m_moveSpeed: 5

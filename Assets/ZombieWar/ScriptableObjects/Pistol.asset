@@ -18,7 +18,7 @@ MonoBehaviour:
   m_magazineMaximum: 3
   m_magazineCapacity: 12
   m_reloadTime: 1.2
-  m_damage: 34
+  m_damage: 45
   m_range: 25
   m_pelletCount: 1
   m_spreadAngle: 0

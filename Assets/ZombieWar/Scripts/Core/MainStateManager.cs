@@ -10,7 +10,7 @@ public class MainStateManager : PersistenceSingleton<MainStateManager>
         None = 0,
         Loading,
         MainMenu,
-        Gameplay,
+        Gameplay
     }
 
     public enum MainStatusType
@@ -28,44 +28,31 @@ public class MainStateManager : PersistenceSingleton<MainStateManager>
     [SerializeField, ReadOnly] private MainStatusType m_mainStatus;
     private bool m_isTransitioning;
 
-#if UNITY_EDITOR
-    [Header("Editor Quick Start")]
-    [Tooltip("Play directly in GameplayZombie. Disable to follow LoadScene -> MainMenu instead.")]
-    [SerializeField] private bool m_startGameplayDirectlyInEditor = true;
-#endif
-
     public MainStateType MainState => m_mainState;
     public MainStateType NextMainState => m_nextMainState;
     public MainStatusType MainStatus => m_mainStatus;
     public bool IsTransitioning => m_isTransitioning;
+    public string LastStartError { get; private set; }
 
     private IEnumerator Start()
     {
+        // Let scene-owned references initialize before showing either screen.
         yield return null;
-
         Time.timeScale = 1f;
+
         string startingScene = SceneManager.GetActiveScene().name;
-
-#if UNITY_EDITOR
-        // Only the initial Editor scene can bypass boot. Scene transitions keep the normal session flow.
-        if (m_startGameplayDirectlyInEditor && startingScene == SceneController.GameplaySceneName)
+        if (startingScene == SceneController.GameplaySceneName)
         {
-            SetMainState(MainStateType.Gameplay);
-            yield break;
+            // Direct Editor play uses the same Home -> Start flow as a build.
+            SetMainState(MainStateType.MainMenu);
         }
-#endif
-
-        switch (startingScene)
+        else if (startingScene == SceneController.LoadingSceneName)
         {
-            case SceneController.LoadingSceneName:
-                SetMainState(MainStateType.Loading);
-                break;
-            case SceneController.MainMenuSceneName:
-                SetMainState(MainStateType.MainMenu);
-                break;
-            case SceneController.GameplaySceneName:
-                yield return TransitionTo(MainStateType.Loading);
-                break;
+            SetMainState(MainStateType.Loading);
+        }
+        else
+        {
+            yield return LoadHomeScene();
         }
     }
 
@@ -74,177 +61,154 @@ public class MainStateManager : PersistenceSingleton<MainStateManager>
         if (m_isTransitioning)
             return;
 
+        if (m_mainStatus == MainStatusType.Exit)
+        {
+            OnExitMainState();
+            return;
+        }
+
         switch (m_mainState)
         {
-            case MainStateType.None:
-                break;
             case MainStateType.Loading:
-                switch (m_mainStatus)
-                {
-                    case MainStatusType.Enter:
-                        LoadingController loadingController = LoadingController.Instance;
-                        if (loadingController == null || !loadingController.IsInitialized)
-                            break;
-                        SetStatus(MainStatusType.Update);
-                        loadingController.ShowLoadingScreen(CallbackLoadingScreen);
-                        break;
-                    case MainStatusType.Update:
-                        break;
-                    case MainStatusType.Exit:
-                        OnExitMainState();
-                        break;
-                }
+                if (m_mainStatus != MainStatusType.Enter)
+                    break;
+                LoadingController loading = LoadingController.Instance;
+                if (loading == null || !loading.IsInitialized)
+                    break;
+                SetStatus(MainStatusType.Update);
+                loading.ShowLoadingScreen(CallbackLoadingScreen);
                 break;
 
             case MainStateType.MainMenu:
-                switch (m_mainStatus)
+                if (m_mainStatus != MainStatusType.Enter)
+                    break;
+                if (SceneManager.GetActiveScene().name != SceneController.GameplaySceneName)
                 {
-                    case MainStatusType.Enter:
-                        if (SceneManager.GetActiveScene().name != SceneController.MainMenuSceneName)
-                        {
-                            StartCoroutine(TransitionTo(MainStateType.MainMenu));
-                            break;
-                        }
-                        if (UIManager.Instance == null)
-                            break;
-                        UIManager.Instance.HideAllUIPopup();
-                        UIManager.Instance.ShowScreen(ScreenType.Home);
-                        SetStatus(MainStatusType.Update);
-                        break;
-                    case MainStatusType.Update:
-                        break;
-                    case MainStatusType.Exit:
-                        OnExitMainState();
-                        break;
+                    StartCoroutine(LoadHomeScene());
+                    break;
                 }
+                if (UIManager.Instance == null)
+                    break;
+                GamePlayController.Instance?.OnFreeData();
+                UIManager.Instance.HideAllUIPopup();
+                UIManager.Instance.ShowScreen(ScreenType.Home);
+                SetStatus(MainStatusType.Update);
                 break;
+
             case MainStateType.Gameplay:
-                switch (m_mainStatus)
+                GamePlayController gameController = GamePlayController.Instance;
+                if (m_mainStatus == MainStatusType.Enter)
                 {
-                    case MainStatusType.Enter:
-                        if (SceneManager.GetActiveScene().name != SceneController.GameplaySceneName)
-                        {
-                            StartCoroutine(TransitionTo(MainStateType.Gameplay));
-                            break;
-                        }
-
-                        GamePlayController gameController = GamePlayController.Instance;
-                        if (gameController == null)
-                        {
-                            Debug.LogError("[MainStateManager] Gameplay scene needs a GamePlayController.", this);
-                            SetStatus(MainStatusType.None);
-                            break;
-                        }
-
-                        SetStatus(MainStatusType.Update);
-                        if (UIManager.Instance != null)
-                        {
-                            UIManager.Instance.HideAllUIPopup();
-                            UIManager.Instance.ShowScreen(ScreenType.Gameplay);
-                        }
-                        gameController.StartLevel();
+                    if (gameController == null || !gameController.IsRunActive)
+                    {
+                        ReturnHome("Select a level and press Start to begin.");
                         break;
-                    case MainStatusType.Update:
-                        // The session is ticked here only, once per frame.
-                        if (GamePlayController.Instance != null)
-                            GamePlayController.Instance.OnUpdate();
-                        break;
-                    case MainStatusType.Exit:
-                        OnExitMainState();
-                        break;
+                    }
+                    UIManager.Instance.HideAllUIPopup();
+                    UIManager.Instance.ShowScreen(ScreenType.Gameplay);
+                    SetStatus(MainStatusType.Update);
+                }
+                else if (m_mainStatus == MainStatusType.Update && gameController != null)
+                {
+                    // The session is ticked here only, once per frame.
+                    gameController.OnUpdate();
                 }
                 break;
         }
-
     }
 
     public void CallbackLoadingScreen()
     {
+        LastStartError = null;
         SetMainState(MainStateType.MainMenu);
     }
 
     public bool TryStartGameplay(Action<bool> completed = null)
     {
         if (m_mainState != MainStateType.MainMenu || m_mainStatus != MainStatusType.Update ||
-            m_isTransitioning || SceneController.Instance == null || SceneController.Instance.IsLoading)
+            m_isTransitioning || SceneManager.GetActiveScene().name != SceneController.GameplaySceneName)
             return false;
 
-        StartCoroutine(TransitionTo(MainStateType.Gameplay, completed));
-        return true;
-    }
-
-    private IEnumerator TransitionTo(MainStateType destination, Action<bool> completed = null)
-    {
-        SceneController sceneController = SceneController.Instance;
-        if (sceneController == null || sceneController.IsLoading)
-        {
-            completed?.Invoke(false);
-            yield break;
-        }
-
         m_isTransitioning = true;
-        Time.timeScale = 1f;
-        SetStatus(MainStatusType.Update);
-
-        if (UIManager.Instance != null)
-            UIManager.Instance.HideAllUIPopup();
-
+        bool succeeded = false;
         try
         {
-            // This manager lives on System and survives both source and destination scenes.
-            switch (destination)
+            GamePlayController controller = GamePlayController.Instance;
+            UIManager ui = UIManager.Instance;
+            UIScreen home = ui != null ? ui.GetUIScreen(ScreenType.Home) : null;
+            UIScreen hud = ui != null ? ui.GetUIScreen(ScreenType.Gameplay) : null;
+            if (controller == null)
             {
-                case MainStateType.Loading:
-                    yield return sceneController.LoadStartup();
-                    break;
-                case MainStateType.MainMenu:
-                    yield return sceneController.LoadMainMenu();
-                    break;
-                case MainStateType.Gameplay:
-                    yield return sceneController.LoadGamePlay();
-                    break;
+                LastStartError = "Gameplay scene needs a GamePlayController.";
             }
+            else if (home == null || home.Panel == null || hud == null || hud.Panel == null)
+            {
+                LastStartError = "Assign Home and Gameplay screens with their panels on UIManager.";
+            }
+            else
+            {
+                succeeded = controller.TryStartLevel(out string error);
+                LastStartError = error;
+            }
+
+            if (succeeded)
+                SetMainState(MainStateType.Gameplay);
         }
         finally
         {
             m_isTransitioning = false;
         }
 
-        bool succeeded = sceneController.LastLoadSucceeded;
-        if (succeeded)
-            SetMainState(destination);
-
         completed?.Invoke(succeeded);
+        return true;
     }
 
-    #region State Management
+    public void ReturnHome(string error = null)
+    {
+        GamePlayController.Instance?.OnFreeData();
+        LastStartError = error;
+        SetMainState(MainStateType.MainMenu);
+    }
+
+    private IEnumerator LoadHomeScene()
+    {
+        SceneController sceneController = SceneController.Instance;
+        if (sceneController == null || sceneController.IsLoading)
+            yield break;
+
+        m_isTransitioning = true;
+        try
+        {
+            yield return sceneController.LoadGamePlay();
+            if (sceneController.LastLoadSucceeded)
+                CallbackLoadingScreen();
+            else
+                SetStatus(MainStatusType.None);
+        }
+        finally
+        {
+            m_isTransitioning = false;
+        }
+    }
+
     private void OnExitMainState()
     {
-        if (NextMainState != MainStateType.None)
-        {
-            SetMainState(NextMainState);
-        }
+        if (m_nextMainState != MainStateType.None)
+            SetMainState(m_nextMainState);
         else
-        {
             SetStatus(MainStatusType.None);
-        }
     }
 
     public void SetStatus(MainStatusType status, MainStateType nextMainState = MainStateType.None)
     {
-        GameLog.Log(LogType.Log, $"[MainStateManager] SetStatus: current status {m_mainStatus} ==> new {status}");
-        GameLog.Log(LogType.Log, $"[MainStateManager] SetStatus: current state {m_mainState} ==> new {nextMainState}");
-
         m_mainStatus = status;
         m_nextMainState = nextMainState;
     }
 
     public void SetMainState(MainStateType mainState)
     {
-        GameLog.Log(LogType.Log, $"[MainStateManager] SetMainState: current state ==> new {mainState}");
         m_previousMainState = m_mainState;
         m_mainState = mainState;
         SetStatus(MainStatusType.Enter);
     }
-    #endregion
 }

@@ -17,16 +17,6 @@
                     "priority": 0
                 },
                 {
-                    "name": "Bomb",
-                    "type": "Button",
-                    "id": "f9fcf765-3177-41c4-bb75-000ef2dd10d0",
-                    "expectedControlType": "",
-                    "processors": "",
-                    "interactions": "",
-                    "initialStateCheck": false,
-                    "priority": 0
-                },
-                {
                     "name": "Aim",
                     "type": "Value",
                     "id": "de2e7c7e-f71e-40e4-8f5e-963d91c4a75a",
@@ -34,16 +24,6 @@
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": true,
-                    "priority": 0
-                },
-                {
-                    "name": "SwitchWeapon",
-                    "type": "Button",
-                    "id": "c91341ae-1f4b-4f52-ae5d-f1153d572de1",
-                    "expectedControlType": "",
-                    "processors": "",
-                    "interactions": "",
-                    "initialStateCheck": false,
                     "priority": 0
                 }
             ],
@@ -109,63 +89,8 @@
                     "path": "<Gamepad>/leftStick",
                     "interactions": "",
                     "processors": "",
-                    "groups": "",
+                    "groups": ";GamePad",
                     "action": "Move",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
-                    "id": "0d394e7f-d199-4b53-a73a-9bd261f94870",
-                    "path": "<Gamepad>/buttonWest",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": ";Gamepad",
-                    "action": "Bomb",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
-                    "id": "3e3766ef-101d-4bd7-ba14-73275d785214",
-                    "path": "<Touchscreen>/primaryTouch/tap",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": ";Touch",
-                    "action": "Bomb",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
-                    "id": "f94cffc8-711d-4175-91c5-4792fc74287c",
-                    "path": "<Joystick>/trigger",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "Joystick",
-                    "action": "Bomb",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
-                    "id": "c036ecd4-cf20-4fea-8126-336951186852",
-                    "path": "<XRController>/{PrimaryAction}",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "XR",
-                    "action": "Bomb",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
-                    "id": "f1ad11ef-1691-4c05-9110-7a78e92b5f96",
-                    "path": "<Keyboard>/q",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "Keyboard&Mouse",
-                    "action": "Bomb",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
@@ -237,34 +162,12 @@
                 },
                 {
                     "name": "",
-                    "id": "d1f66450-69db-4dbe-b8e6-1bba2a8a55e2",
-                    "path": "<Keyboard>/e",
+                    "id": "407e1507-4de2-465f-88e2-fe167cae34a7",
+                    "path": "<Gamepad>/rightStick",
                     "interactions": "",
                     "processors": "",
-                    "groups": "Keyboard&Mouse",
-                    "action": "SwitchWeapon",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
-                    "id": "259a9d9b-ce57-4e63-82ee-de8d55fff6bd",
-                    "path": "<Touchscreen>/primaryTouch/tap",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": ";Touch",
-                    "action": "SwitchWeapon",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
-                    "id": "a827042c-cb33-4dfb-a219-fbe07bd7c144",
-                    "path": "<Joystick>/trigger",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "Joystick",
-                    "action": "SwitchWeapon",
+                    "groups": ";GamePad",
+                    "action": "Aim",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }
@@ -278,22 +181,6 @@
             "devices": [
                 {
                     "devicePath": "<Gamepad>",
-                    "isOptional": false,
-                    "isOR": false
-                }
-            ]
-        },
-        {
-            "name": "Keyboard&&Mouse",
-            "bindingGroup": "Keyboard&&Mouse",
-            "devices": [
-                {
-                    "devicePath": "<Keyboard>",
-                    "isOptional": false,
-                    "isOR": false
-                },
-                {
-                    "devicePath": "<Mouse>",
                     "isOptional": false,
                     "isOR": false
                 }

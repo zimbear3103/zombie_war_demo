@@ -228,6 +228,7 @@ public class BombController : MonoBehaviour
     {
         m_isArmed = false;
         ReleaseOwner();
+        gameObject.SetActive(false);
         Destroy(gameObject);
     }
 

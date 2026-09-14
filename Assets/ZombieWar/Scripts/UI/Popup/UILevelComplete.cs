@@ -10,9 +10,6 @@ public class UILevelComplete : UIPopup
     [SerializeField] private TextMeshProUGUI m_descriptionText;
     [SerializeField] private TextMeshProUGUI m_scoreText;
     [SerializeField] private TextMeshProUGUI m_scoreBestText;
-    [SerializeField] private Image[] m_groupStar;
-    [Tooltip("Tint for the stars not earned this run")]
-    [SerializeField] private Color m_starOffColor = new Color(0.3f, 0.3f, 0.3f, 1f);
 
     private void OnEnable()
     {
@@ -47,11 +44,6 @@ public class UILevelComplete : UIPopup
         if (m_scoreBestText != null)
             m_scoreBestText.text = result.isNewBest ? $"NEW BEST: {result.bestScore}" : $"BEST: {result.bestScore}";
 
-        for (int i = 0; i < m_groupStar.Length; i++)
-        {
-            if (m_groupStar[i] != null)
-                m_groupStar[i].color = i < result.stars ? Color.yellow : m_starOffColor;
-        }
     }
 
     private void OnLeftButtonPressed()

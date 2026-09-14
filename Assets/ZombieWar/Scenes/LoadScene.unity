@@ -392,7 +392,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: -1421974844, guid: e55597905f3ebec4cae59bd1e4c707fa, type: 3}
+  m_Sprite: {fileID: -7443756053782179069, guid: c4283c4a548d16440b245e60620b98d6, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -437,7 +437,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_AspectMode: 0
-  m_AspectRatio: 0.3611738
+  m_AspectRatio: 1.780899
 --- !u!1 &817565522
 GameObject:
   m_ObjectHideFlags: 0
@@ -1312,6 +1312,8 @@ MonoBehaviour:
   m_progressSlider: {fileID: 1527028855}
   m_loadingScreen: {fileID: 1504829838}
   m_splashScreen: {fileID: 2192245423874182064}
+  m_retryButton: {fileID: 0}
+  m_statusText: {fileID: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

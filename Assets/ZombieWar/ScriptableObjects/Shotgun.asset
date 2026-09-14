@@ -18,30 +18,30 @@ MonoBehaviour:
   m_magazineMaximum: 3
   m_magazineCapacity: 6
   m_reloadTime: 2
-  m_damage: 22
+  m_damage: 30
   m_range: 12
   m_pelletCount: 6
   m_spreadAngle: 16
   m_knockbackForce: 0
-  m_handLocalPosition: {x: 0, y: 0, z: 0}
+  m_handLocalPosition: {x: 0.14, y: 0, z: 0}
   m_handLocalEulerAngles: {x: 0, y: 0, z: 0}
   m_fireSound:
     m_clips:
-    - {fileID: 8300000, guid: 230d59294c9857140b63dd308ea4bd63, type: 3}
+    - {fileID: 8300000, guid: 517cb4111b60bc444813bbc62a479e05, type: 3}
     m_volume: 0.8
     m_pitchRange: {x: 0.95, y: 1.05}
     m_minDistance: 110
     m_maxDistance: 160
   m_reloadSound:
     m_clips:
-    - {fileID: 8300000, guid: 406c929b7299afb469c82778f8d15d5b, type: 3}
+    - {fileID: 8300000, guid: af63539a5e39c99489395bdea2471f60, type: 3}
     m_volume: 0.8
     m_pitchRange: {x: 0.95, y: 1.05}
     m_minDistance: 110
     m_maxDistance: 160
   m_equipSound:
     m_clips:
-    - {fileID: 8300000, guid: 406c929b7299afb469c82778f8d15d5b, type: 3}
+    - {fileID: 8300000, guid: af63539a5e39c99489395bdea2471f60, type: 3}
     m_volume: 0.8
     m_pitchRange: {x: 0.95, y: 1.05}
     m_minDistance: 110

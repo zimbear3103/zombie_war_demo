@@ -141,22 +141,6 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 8258627722015222540}
         m_TargetAssemblyTypeName: PlayerController, ZombieWar.PlayerCore
-        m_MethodName: 
-        m_Mode: 1
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
-    m_ActionId: f9fcf765-3177-41c4-bb75-000ef2dd10d0
-    m_ActionName: 'Player/Bomb[/Mouse/leftButton,/Keyboard/enter]'
-  - m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 8258627722015222540}
-        m_TargetAssemblyTypeName: PlayerController, ZombieWar.PlayerCore
         m_MethodName: OnAim
         m_Mode: 0
         m_Arguments:
@@ -169,24 +153,8 @@ MonoBehaviour:
         m_CallState: 2
     m_ActionId: de2e7c7e-f71e-40e4-8f5e-963d91c4a75a
     m_ActionName: 'Player/Aim[/Mouse/delta]'
-  - m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 8258627722015222540}
-        m_TargetAssemblyTypeName: PlayerController, ZombieWar.PlayerCore
-        m_MethodName: OnSwitchWeapon
-        m_Mode: 0
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
-    m_ActionId: c91341ae-1f4b-4f52-ae5d-f1153d572de1
-    m_ActionName: Player/SwitchWeapon
   m_NeverAutoSwitchControlSchemes: 0
-  m_DefaultControlScheme: Keyboard&&Mouse
+  m_DefaultControlScheme: GamePad
   m_DefaultActionMap: Player
   m_SplitScreenIndex: -1
   m_Camera: {fileID: 0}
@@ -204,14 +172,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerController
   m_facingRoot: {fileID: 0}
   m_aimDeadZone: 0.25
-  m_startingWeapon: {fileID: 11400000, guid: 8c89dae4c0d29ef4a8f9185104e2bcda, type: 2}
+  m_startingWeapon: {fileID: 11400000, guid: db141a7607bd42c49a2296c878b6bf9a, type: 2}
   m_weaponSocket: {fileID: 3922730576204198536}
   m_obstructionOrigin: {fileID: 7965364613682730305}
   m_hitMask:
     serializedVersion: 2
     m_Bits: 51
   m_startingBomb: {fileID: 8079344404464782467, guid: 3a3acf1822588944da8a9869ffb174ad, type: 3}
-  m_startingBombCount: 3
+  m_startingBombCount: 1
   m_bombThrowOrigin: {fileID: 0}
   m_maxBombCount: 3
 --- !u!54 &8872593710572026111
@@ -467,7 +435,7 @@ Transform:
   m_GameObject: {fileID: 6195892311358807522}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.14, y: 1.22, z: 0.45}
+  m_LocalPosition: {x: 0.14, y: 1.22, z: 0.62}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:

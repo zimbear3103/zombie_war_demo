@@ -59,6 +59,12 @@ public class ZombieSpawner : MonoBehaviour
     private float m_spawnTimer;
     private bool m_isRunning;
     private bool m_gameplayEnabled;
+    private LevelScriptableObject m_level;
+    private LevelMap m_map;
+
+    private IReadOnlyList<Wave> RunWaves => m_level != null ? m_level.Waves : m_waves;
+    private IReadOnlyList<Transform> RunSpawnPoints => m_map != null ? m_map.ZombieSpawnPoints : m_spawnPoints;
+    private float PlayerSafetyRadius => m_level != null ? m_level.PlayerSafetyRadius : m_playerSafetyRadius;
 
     public int AliveCount
     {
@@ -112,6 +118,20 @@ public class ZombieSpawner : MonoBehaviour
     private void OnDisable()
     {
         EndRun();
+    }
+
+    public void ConfigureLevel(LevelScriptableObject level, LevelMap map)
+    {
+        EndRun();
+        m_level = level;
+        m_map = map;
+    }
+
+    public void ClearLevelConfiguration()
+    {
+        EndRun();
+        m_level = null;
+        m_map = null;
     }
 
     public bool BeginRun(Transform target, PlayerStats targetStats)
@@ -195,21 +215,21 @@ public class ZombieSpawner : MonoBehaviour
             return false;
         }
 
-        if (m_spawnPoints == null || !HasAuthoredSpawnPoint())
+        if (RunSpawnPoints == null || !HasAuthoredSpawnPoint())
         {
             error = "at least one authored spawn point is required.";
             return false;
         }
 
-        if (m_waves == null || m_waves.Count == 0)
+        if (RunWaves == null || RunWaves.Count == 0)
         {
             error = "at least one wave is required.";
             return false;
         }
 
-        for (int waveIndex = 0; waveIndex < m_waves.Count; waveIndex++)
+        for (int waveIndex = 0; waveIndex < RunWaves.Count; waveIndex++)
         {
-            Wave wave = m_waves[waveIndex];
+            Wave wave = RunWaves[waveIndex];
             if (wave == null || wave.ZombieGroups == null || wave.ZombieGroups.Count == 0)
             {
                 error = $"wave {waveIndex} has no zombie groups.";
@@ -252,12 +272,24 @@ public class ZombieSpawner : MonoBehaviour
                     error = $"{group.ZombiePrefab.name} needs an enabled NavMeshAgent on its root.";
                     return false;
                 }
+
+                if (m_map != null && agent.agentTypeID != m_map.NavMeshSurface.agentTypeID)
+                {
+                    error = $"{group.ZombiePrefab.name} uses a different agent type from the map NavMeshSurface.";
+                    return false;
+                }
             }
         }
 
-        if (m_spawnedZombieParent != null && !m_spawnedZombieParent.gameObject.activeInHierarchy)
+        if (m_level == null && m_spawnedZombieParent != null && !m_spawnedZombieParent.gameObject.activeInHierarchy)
         {
             error = "the assigned spawned-zombie parent must be active.";
+            return false;
+        }
+
+        if (m_level != null && (m_map == null || !m_map.isActiveAndEnabled || !HasReachableSpawnPoint(target)))
+        {
+            error = "player and zombie spawns must share a connected NavMesh, with at least one zombie spawn outside the safety radius.";
             return false;
         }
 
@@ -267,9 +299,9 @@ public class ZombieSpawner : MonoBehaviour
 
     private bool HasAuthoredSpawnPoint()
     {
-        for (int i = 0; i < m_spawnPoints.Count; i++)
+        for (int i = 0; i < RunSpawnPoints.Count; i++)
         {
-            if (m_spawnPoints[i] != null)
+            if (RunSpawnPoints[i] != null)
                 return true;
         }
 
@@ -278,13 +310,13 @@ public class ZombieSpawner : MonoBehaviour
 
     private void TrySpawnNextZombie()
     {
-        Wave wave = m_waves[m_currentWaveIndex];
+        Wave wave = RunWaves[m_currentWaveIndex];
         ZombieGroup group = wave.ZombieGroups[m_currentGroupIndex];
 
         if (!TryGetSpawnPosition(out Vector3 spawnPosition))
             return;
-        Debug.Log($"Spawning {group.ZombiePrefab.name} at {spawnPosition} for wave {m_currentWaveIndex}, group {m_currentGroupIndex}.", this);
-        Transform parent = m_spawnedZombieParent != null ? m_spawnedZombieParent : transform;
+        // Keep pooled zombies outside the disposable map hierarchy.
+        Transform parent = m_level != null || m_spawnedZombieParent == null ? transform : m_spawnedZombieParent;
         GameObject instance = m_pool.AcquireInactive(group.ZombiePrefab, parent);
         if (instance == null)
         {
@@ -317,20 +349,20 @@ public class ZombieSpawner : MonoBehaviour
 
     private bool TryGetSpawnPosition(out Vector3 position)
     {
-        int pointCount = m_spawnPoints.Count;
+        int pointCount = RunSpawnPoints.Count;
         int attempts = Mathf.Min(Mathf.Max(1, m_spawnPointScanLimit), pointCount);
         int startIndex = UnityEngine.Random.Range(0, pointCount);
-        float safetyRadius = Mathf.Max(0f, m_playerSafetyRadius);
+        float safetyRadius = Mathf.Max(0f, PlayerSafetyRadius);
         float safetyRadiusSquared = safetyRadius * safetyRadius;
         float sampleRadius = GetPositiveValue(m_navMeshSampleRadius, 2f);
 
         for (int attempt = 0; attempt < attempts; attempt++)
         {
-            Transform spawnPoint = m_spawnPoints[(startIndex + attempt) % pointCount];
-            if (spawnPoint == null || IsInsideSafetyRadius(spawnPoint.position, safetyRadiusSquared))
+            Transform spawnPoint = RunSpawnPoints[(startIndex + attempt) % pointCount];
+            if (spawnPoint == null || !spawnPoint.gameObject.activeInHierarchy || IsInsideSafetyRadius(spawnPoint.position, safetyRadiusSquared))
                 continue;
 
-            if (!NavMesh.SamplePosition(spawnPoint.position, out NavMeshHit hit, sampleRadius, m_navMeshAreaMask))
+            if (!SampleSpawnPoint(spawnPoint.position, sampleRadius, out NavMeshHit hit))
                 continue;
 
             if (IsInsideSafetyRadius(hit.position, safetyRadiusSquared))
@@ -342,6 +374,57 @@ public class ZombieSpawner : MonoBehaviour
 
         position = default;
         return false;
+    }
+
+    private bool HasReachableSpawnPoint(Transform target)
+    {
+        float safetyRadiusSquared = PlayerSafetyRadius * PlayerSafetyRadius;
+        float sampleRadius = GetPositiveValue(m_navMeshSampleRadius, 2f);
+        if (!SampleSpawnPoint(target.position, sampleRadius, out NavMeshHit playerHit))
+            return false;
+
+        var filter = new NavMeshQueryFilter
+        {
+            agentTypeID = m_map.NavMeshSurface.agentTypeID,
+            areaMask = m_navMeshAreaMask
+        };
+        var path = new NavMeshPath();
+        bool hasSafeSpawn = false;
+        foreach (Transform point in RunSpawnPoints)
+        {
+            if (point == null || !point.gameObject.activeInHierarchy ||
+                !SampleSpawnPoint(point.position, sampleRadius, out NavMeshHit hit))
+                return false;
+
+            if (!NavMesh.CalculatePath(hit.position, playerHit.position, filter, path) ||
+                path.status != NavMeshPathStatus.PathComplete)
+                return false;
+
+            Vector3 markerOffset = point.position - target.position;
+            markerOffset.y = 0f;
+            if (markerOffset.sqrMagnitude < safetyRadiusSquared)
+                continue;
+
+            Vector3 offset = hit.position - target.position;
+            offset.y = 0f;
+            if (offset.sqrMagnitude >= safetyRadiusSquared)
+                hasSafeSpawn = true;
+        }
+
+        return hasSafeSpawn;
+    }
+
+    private bool SampleSpawnPoint(Vector3 position, float radius, out NavMeshHit hit)
+    {
+        if (m_map == null)
+            return NavMesh.SamplePosition(position, out hit, radius, m_navMeshAreaMask);
+
+        var filter = new NavMeshQueryFilter
+        {
+            agentTypeID = m_map.NavMeshSurface.agentTypeID,
+            areaMask = m_navMeshAreaMask
+        };
+        return NavMesh.SamplePosition(position, out hit, radius, filter);
     }
 
     private bool IsInsideSafetyRadius(Vector3 position, float safetyRadiusSquared)
@@ -369,22 +452,22 @@ public class ZombieSpawner : MonoBehaviour
         m_spawnedInCurrentGroup = 0;
         m_currentGroupIndex++;
 
-        if (m_currentGroupIndex < m_waves[m_currentWaveIndex].ZombieGroups.Count)
+        if (m_currentGroupIndex < RunWaves[m_currentWaveIndex].ZombieGroups.Count)
             return;
 
         m_currentGroupIndex = 0;
-        if (m_currentWaveIndex < m_waves.Count - 1)
+        if (m_currentWaveIndex < RunWaves.Count - 1)
             m_currentWaveIndex++;
     }
 
     private float GetCurrentSpawnInterval()
     {
-        return m_waves[m_currentWaveIndex].SpawnInterval;
+        return RunWaves[m_currentWaveIndex].SpawnInterval;
     }
 
     private int GetAliveCap()
     {
-        return m_aliveCap > 0 ? m_aliveCap : 40;
+        return m_level != null ? m_level.AliveCap : (m_aliveCap > 0 ? m_aliveCap : 40);
     }
 
     private void HandleZombieDied(ZombieController zombie)

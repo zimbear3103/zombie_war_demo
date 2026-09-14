@@ -7,7 +7,6 @@ using UnityEngine.SceneManagement;
 public class SceneController : PersistenceSingleton<SceneController>
 {
     public const string LoadingSceneName = "LoadScene";
-    public const string MainMenuSceneName = "MainMenu";
     public const string GameplaySceneName = "GameplayZombie";
 
     private static SceneController m_activeController;
@@ -45,7 +44,8 @@ public class SceneController : PersistenceSingleton<SceneController>
 
     public IEnumerator LoadMainMenu(Action<float> updateCallback = null, Action callback = null)
     {
-        return LoadScene(MainMenuSceneName, updateCallback, callback);
+        // Home is a screen inside GameplayZombie, not a separate scene.
+        return LoadScene(GameplaySceneName, updateCallback, callback);
     }
 
     public IEnumerator LoadStartup(Action<float> updateCallback = null, Action callback = null)

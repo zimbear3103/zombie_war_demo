@@ -23,14 +23,8 @@ public class GamePlayController : Singleton<GamePlayController>
         Exit
     }
 
-    private const float m_gameplayDuration = 180f;
-    private const string m_runName = "Zombie War";
-
     [Header("Session References")]
-    [SerializeField] private PlayerController m_playerController;
     [SerializeField] private ZombieSpawner m_zombieSpawner;
-    [Tooltip("Optional. When omitted, the player's first observed pose is reused for every run.")]
-    [SerializeField] private Transform m_playerSpawnPoint;
 
     [Header("Game State")]
     [SerializeField, ReadOnly] private GameStateType m_gameState = GameStateType.None;
@@ -42,21 +36,19 @@ public class GamePlayController : Singleton<GamePlayController>
     private PlayerStats m_subscribedPlayerStats;
     private ZombieSpawner m_subscribedSpawner;
     private Coroutine m_resultCoroutine;
-    private Vector3 m_initialPlayerPosition;
-    private Quaternion m_initialPlayerRotation;
+    private string m_runName;
+    private string m_runScoreKey;
     private float m_remainingTime;
     private float m_savedTimeScale = 1f;
     private int m_killCount;
     private int m_runVersion;
-    private bool m_hasInitialPlayerPose;
     private bool m_isPaused;
     private bool m_isRunActive;
     private bool m_isSettingOpen;
     private bool m_resultResolved;
     private bool m_resultShown;
     private bool m_timeScaleCaptured;
-    private bool m_setupSucceeded;
-
+    private PlayerController m_playerController;
     private float m_playerDeadWaitingTime = 0.5f;
 
     public bool IsGamePlaying { set; get; }
@@ -68,8 +60,8 @@ public class GamePlayController : Singleton<GamePlayController>
     public float RemainingTime => m_remainingTime;
     public int KillCount => m_killCount;
     public PlayerController Player => m_playerController;
-
-    public int SelectedSongIndex { get; set; }
+    public bool IsRunActive => m_isRunActive;
+    public string LastSetupError { get; private set; }
 
     public struct RunResult
     {
@@ -90,7 +82,7 @@ public class GamePlayController : Singleton<GamePlayController>
 
     private void Awake()
     {
-        CaptureInitialPlayerPose();
+        SetGameplayEnabled(false);
     }
 
     private void Start()
@@ -98,8 +90,6 @@ public class GamePlayController : Singleton<GamePlayController>
         UserProfile userProfile = UserProfile.Instance;
         if (userProfile != null)
             userProfile.LoadGameData();
-
-        CaptureInitialPlayerPose();
     }
 
     private void OnDisable()
@@ -113,111 +103,83 @@ public class GamePlayController : Singleton<GamePlayController>
         base.OnDestroy();
     }
 
-    public void OnSetupGameLevel(int songIndex)
+    public bool TryStartLevel(out string error)
     {
-        SelectedSongIndex = songIndex;
-        m_setupSucceeded = TryBeginRun();
-    }
+        OnFreeData();
+        SetGameState(GameStateType.None);
+        SetGameControlStatus(ControlStatusType.None);
+        LastSetupError = null;
+        m_remainingTime = 0f;
 
-    private bool TryBeginRun()
-    {
-        CancelDelayedCallbacks();
-        SetGameplayEnabled(false);
+        if (!HasRequiredReferences(out error))
+            return FailSetup(error);
 
-        if (SoundManager.HasInstance)
-            SoundManager.Instance.StopAllGameplaySounds();
+        if (!LevelManager.Instance.TryPrepareSelectedLevel(out error))
+            return FailSetup(error);
 
-        if (m_zombieSpawner != null)
-            m_zombieSpawner.EndRun();
-
-        UnsubscribeRuntimeEvents();
-        RestoreTimeScale();
-        m_isRunActive = false;
-
-        if (!HasRequiredReferences())
-            return false;
-
-        CaptureInitialPlayerPose();
-        if (!m_hasInitialPlayerPose && m_playerSpawnPoint == null)
+        LevelScriptableObject level = LevelManager.Instance.CurrentLevel;
+        LevelMap map = LevelManager.Instance.CurrentMap;
+        Transform spawnPoint = map.PlayerSpawnPoint;
+        m_playerController = LevelManager.Instance.CurrentPlayer;
+        if (!m_playerController.ResetForRun(spawnPoint.position, spawnPoint.rotation))
         {
-            Debug.LogError("[GamePlayController] Cannot start: player spawn pose is unavailable.", this);
-            return false;
+            error = "The player loadout could not be prepared. Check the starting weapon, socket and weapon prefab.";
+            return FailSetup(error);
+        }
+        m_zombieSpawner.ConfigureLevel(level, map);
+
+        if (!m_zombieSpawner.BeginRun(m_playerController.transform, m_playerController.Stats))
+        {
+            error = "Zombie spawning could not be prepared. Check the level waves, pool and NavMesh.";
+            return FailSetup(error);
         }
 
-        Vector3 spawnPosition = m_playerSpawnPoint != null
-            ? m_playerSpawnPoint.position
-            : m_initialPlayerPosition;
-        Quaternion spawnRotation = m_playerSpawnPoint != null
-            ? m_playerSpawnPoint.rotation
-            : m_initialPlayerRotation;
-
-        m_playerController.ResetForRun(spawnPosition, spawnRotation);
-        m_playerController.SetGameplayEnabled(false);
+        m_zombieSpawner.SetGameplayEnabled(false);
         SubscribeRuntimeEvents();
-
-        m_remainingTime = m_gameplayDuration;
+        m_remainingTime = level.SurvivalDuration;
+        m_runName = level.LevelName;
+        m_runScoreKey = $"level_{level.LevelId}";
         m_killCount = 0;
         m_resultResolved = false;
         m_resultShown = false;
         LastRunResult = default;
 
-        if (!m_zombieSpawner.BeginRun(m_playerController.transform, m_playerController.Stats))
-        {
-            Debug.LogError("[GamePlayController] Cannot start: ZombieSpawner configuration is not ready.", this);
-            m_zombieSpawner.EndRun();
-            UnsubscribeRuntimeEvents();
-            return false;
-        }
-
-        m_zombieSpawner.SetGameplayEnabled(false);
         m_isRunActive = true;
+        // MainStateManager shows the HUD before the next gameplay tick opens input and spawning.
+        SetGameState(GameStateType.Playing);
+        error = null;
         return true;
     }
 
-    private bool HasRequiredReferences()
+    private bool FailSetup(string error)
     {
-        if (m_playerController == null)
-        {
-            Debug.LogError("[GamePlayController] Cannot start: PlayerController reference is missing.", this);
-            return false;
-        }
-
-        if (!m_playerController.isActiveAndEnabled)
-        {
-            Debug.LogError("[GamePlayController] Cannot start: PlayerController must be active and enabled.", this);
-            return false;
-        }
-
-        PlayerStats playerStats = m_playerController.Stats;
-        if (playerStats == null)
-        {
-            Debug.LogError("[GamePlayController] Cannot start: PlayerStats is missing from PlayerController.", this);
-            return false;
-        }
-
-        if (!playerStats.isActiveAndEnabled)
-        {
-            Debug.LogError("[GamePlayController] Cannot start: PlayerStats must be active and enabled.", this);
-            return false;
-        }
-
-        if (m_zombieSpawner == null)
-        {
-            Debug.LogError("[GamePlayController] Cannot start: ZombieSpawner reference is missing.", this);
-            return false;
-        }
-
-        return true;
+        OnFreeData();
+        LastSetupError = error;
+        return false;
     }
 
-    private void CaptureInitialPlayerPose()
+    private bool HasRequiredReferences(out string error)
     {
-        if (m_hasInitialPlayerPose || m_playerSpawnPoint != null || m_playerController == null)
-            return;
+        if (!isActiveAndEnabled)
+        {
+            error = "GamePlayController must be active and enabled.";
+            return false;
+        }
 
-        m_initialPlayerPosition = m_playerController.transform.position;
-        m_initialPlayerRotation = m_playerController.transform.rotation;
-        m_hasInitialPlayerPose = true;
+        if (LevelManager.Instance == null || !LevelManager.Instance.isActiveAndEnabled)
+        {
+            error = "The gameplay scene needs an active LevelManager with a Player Prefab.";
+            return false;
+        }
+
+        if (m_zombieSpawner == null || !m_zombieSpawner.isActiveAndEnabled)
+        {
+            error = "Assign an active ZombieSpawner on GamePlayController.";
+            return false;
+        }
+
+        error = null;
+        return true;
     }
 
     private void SubscribeRuntimeEvents()
@@ -356,9 +318,11 @@ public class GamePlayController : Singleton<GamePlayController>
 
         if (m_playerController == null || !m_playerController.isActiveAndEnabled ||
             m_playerController.Stats == null || !m_playerController.Stats.isActiveAndEnabled ||
-            m_zombieSpawner == null || !m_zombieSpawner.isActiveAndEnabled || !m_zombieSpawner.IsRunning)
+            m_zombieSpawner == null || !m_zombieSpawner.isActiveAndEnabled || !m_zombieSpawner.IsRunning ||
+            LevelManager.Instance == null || !LevelManager.Instance.isActiveAndEnabled ||
+            LevelManager.Instance.CurrentMap == null || !LevelManager.Instance.CurrentMap.isActiveAndEnabled)
         {
-            Debug.LogError("[GamePlayController] Run stopped because the player or zombie scheduler is unavailable.", this);
+            Debug.LogError("[GamePlayController] Run stopped because the player, map or zombie scheduler is unavailable.", this);
             m_resultCoroutine = StartCoroutine(PlayerLose(0f));
             return;
         }
@@ -383,13 +347,7 @@ public class GamePlayController : Singleton<GamePlayController>
     {
         if (m_controlStatus == ControlStatusType.Enter)
         {
-            SetGameControlStatus(ControlStatusType.Update);
-            OnSetupGameLevel(SelectedSongIndex);
-
-            if (m_setupSucceeded)
-                SetGameControlStatus(ControlStatusType.Exit, GameStateType.Playing);
-            else
-                SetGameState(GameStateType.None);
+            StartLevel();
         }
         else if (m_controlStatus == ControlStatusType.Exit)
         {
@@ -547,8 +505,8 @@ public class GamePlayController : Singleton<GamePlayController>
 
         if (userProfile != null)
         {
-            int previousBest = userProfile.GetBestScore(m_runName);
-            isNewBest = userProfile.SubmitSongScore(m_runName, m_killCount);
+            int previousBest = userProfile.GetBestScore(m_runScoreKey);
+            isNewBest = userProfile.SubmitSongScore(m_runScoreKey, m_killCount);
             bestScore = Mathf.Max(previousBest, m_killCount);
         }
 
@@ -565,13 +523,13 @@ public class GamePlayController : Singleton<GamePlayController>
 
     public void StartLevel()
     {
-        OnFreeData();
+        if (TryStartLevel(out string error))
+            return;
 
-        UserProfile userProfile = UserProfile.Instance;
-        if (userProfile != null)
-            userProfile.SaveGameData();
-
-        SetGameControlStatus(ControlStatusType.Exit, GameStateType.StartLevel);
+        Debug.LogError($"[GamePlayController] Cannot start: {error}", this);
+        MainStateManager mainStateManager = MainStateManager.Instance;
+        if (mainStateManager != null)
+            mainStateManager.ReturnHome(error);
     }
 
     public void RestartLevel()
@@ -714,15 +672,22 @@ public class GamePlayController : Singleton<GamePlayController>
             SoundManager.Instance.StopAllGameplaySounds();
 
         if (m_zombieSpawner != null)
+        {
             m_zombieSpawner.EndRun();
+            m_zombieSpawner.ClearLevelConfiguration();
+        }
 
         UnsubscribeRuntimeEvents();
+        if (m_playerController != null)
+            m_playerController.EndRun();
+        if (LevelManager.Instance != null)
+            LevelManager.Instance.ClearLevel();
+        m_playerController = null;
         RestoreTimeScale();
         m_isPaused = false;
         m_isRunActive = false;
         m_isSettingOpen = false;
         m_resultResolved = false;
-        m_setupSucceeded = false;
         m_pauseReturnState = GameStateType.None;
         m_settingReturnState = GameStateType.None;
         SaveIsGamePlaying = false;
